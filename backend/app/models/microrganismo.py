@@ -45,6 +45,27 @@ class MorfologiaEnum(str, enum.Enum):
     NAO_SE_APLICA = "NAO_SE_APLICA"
 
 
+class GrupoFenotipicoEnum(str, enum.Enum):
+    """
+    Família fenotípica usada pela Matriz de Sensibilidade CCIH (Fase 1.5)
+    para agrupar o perfil de resistência - é uma distinção clínica real
+    que não dá para derivar de `gram`/`tipo`/`morfologia`/`fermentador`
+    (ex.: Staphylococcus aureus e os CoNS têm exatamente os mesmos
+    valores nesses campos, mas perfis de resistência muito diferentes).
+
+    `OUTROS` é o catch-all pro que não se encaixa nos demais grupos
+    (micobactérias, parasitas, gram-negativos não-bacilo, etc.).
+    """
+
+    CONS = "CONS"
+    S_AUREUS = "S_AUREUS"
+    BGN_F = "BGN_F"
+    BGN_NF = "BGN_NF"
+    LEVEDURAS = "LEVEDURAS"
+    OUTROS_GRAM_POSITIVOS = "OUTROS_GRAM_POSITIVOS"
+    OUTROS = "OUTROS"
+
+
 class Microrganismo(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "microrganismos"
     __table_args__ = (
@@ -72,6 +93,12 @@ class Microrganismo(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, Soft
     fermentador: Mapped[bool | None] = mapped_column(nullable=True)
     familia: Mapped[str | None] = mapped_column(String(100), nullable=True)
     relevancia_clinica: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    grupo_fenotipico: Mapped[GrupoFenotipicoEnum] = mapped_column(
+        Enum(GrupoFenotipicoEnum, name="grupo_fenotipico_enum"),
+        default=GrupoFenotipicoEnum.OUTROS,
+        server_default=GrupoFenotipicoEnum.OUTROS.value,
+        nullable=False,
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Microrganismo {self.nome}>"

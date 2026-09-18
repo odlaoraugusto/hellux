@@ -182,6 +182,39 @@ def test_taxa_sensibilidade_mesmo_antimicrobiano(authenticated_client):
     assert item["percentual_sensivel"] == 50.0
 
 
+def test_contaminacao_excluida_da_taxa_resistencia_e_da_matriz(authenticated_client):
+    """
+    Fase 1.5: `Exame.status == CONTAMINACAO` nunca tinha sido excluído do
+    cálculo de `taxa_resistencia` (bug de dado corrigido nesta fase) -
+    confere aqui, e de quebra confere que o endpoint novo
+    `/api/ccih/matriz-sensibilidade` também respeita a mesma exclusão.
+    """
+    exame, setor = _fluxo_positivo_com_antibiograma(
+        authenticated_client,
+        "cont1",
+        setor_nome="UTI Contaminação",
+        nome_micro="Klebsiella pneumoniae contaminação",
+        resultado_sir="RESISTENTE",
+    )
+
+    # Reclassifica o exame como contaminação sem tocar os isolados já
+    # lançados (PUT com só `status` - `isolados` fica None, então a
+    # revalidação/redefinição de isolados é pulada, ver ExameService.atualizar).
+    resposta_update = authenticated_client.put(
+        f"/api/exames/{exame['id']}", json={"status": "CONTAMINACAO"}
+    )
+    assert resposta_update.status_code == 200
+    assert resposta_update.json()["data"]["status"] == "CONTAMINACAO"
+
+    indicadores = authenticated_client.get("/api/ccih/indicadores").json()["data"]
+    assert not any(
+        r["antimicrobiano"] == "Antimicrobiano cont1" for r in indicadores["taxa_resistencia"]
+    )
+
+    matriz = authenticated_client.get("/api/ccih/matriz-sensibilidade").json()["data"]
+    assert not any(i["antimicrobiano"] == "Antimicrobiano cont1" for i in matriz["itens"])
+
+
 def test_periodo_customizado_exclui_dados_fora_do_intervalo(authenticated_client):
     _fluxo_positivo_com_antibiograma(authenticated_client, "c9")
 

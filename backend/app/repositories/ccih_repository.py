@@ -176,6 +176,10 @@ class CCIHRepository:
             .join(Exame, Exame.id == ExameIsolado.exame_id)
             .where(
                 Exame.is_active.is_(True),
+                # Exclui contaminação (bug de dado corrigido na Fase 1.5 -
+                # a regra "não contar contaminação" já é intenção do
+                # módulo, só nunca tinha sido aplicada neste indicador).
+                Exame.status != StatusExameEnum.CONTAMINACAO,
                 DATA_REFERENCIA >= inicio,
                 DATA_REFERENCIA <= fim,
             )
@@ -189,4 +193,65 @@ class CCIHRepository:
         return [
             (nome, testado, resistente or 0, sensivel or 0)
             for nome, testado, resistente, sensivel in resultado
+        ]
+
+    def matriz_sensibilidade(
+        self,
+        inicio: date,
+        fim: date,
+        apenas_vigilancia: bool | None = None,
+    ) -> list[tuple[str, str, str, int, int, int, int]]:
+        """
+        Matriz de Sensibilidade CCIH (Fase 1.5): agrupa os resultados de
+        antibiograma por `(macro_grupo do setor, grupo_fenotipico do
+        microrganismo, antimicrobiano)`, com os três percentuais (S/I/R -
+        o indicador antigo `taxa_resistencia` só tinha S/R).
+
+        Regras de exclusão (além do período): `Exame.status ==
+        CONTAMINACAO` e `ExameIsolado.nao_realizado_tecnico == True`
+        (dispensa técnica do antibiograma daquele isolado específico).
+        """
+        macro_grupo = func.coalesce(Setor.macro_grupo, "Não classificado")
+        total_testado = func.count(ExameAntibiograma.id)
+        total_sensivel = func.sum(
+            case((ExameAntibiograma.resultado == ResultadoSIREnum.SENSIVEL, 1), else_=0)
+        )
+        total_intermediario = func.sum(
+            case((ExameAntibiograma.resultado == ResultadoSIREnum.INTERMEDIARIO, 1), else_=0)
+        )
+        total_resistente = func.sum(
+            case((ExameAntibiograma.resultado == ResultadoSIREnum.RESISTENTE, 1), else_=0)
+        )
+
+        stmt = (
+            select(
+                macro_grupo,
+                Microrganismo.grupo_fenotipico,
+                Antimicrobiano.nome,
+                total_testado,
+                total_sensivel,
+                total_intermediario,
+                total_resistente,
+            )
+            .select_from(ExameAntibiograma)
+            .join(Antimicrobiano, Antimicrobiano.id == ExameAntibiograma.antimicrobiano_id)
+            .join(ExameIsolado, ExameIsolado.id == ExameAntibiograma.isolado_id)
+            .join(Microrganismo, Microrganismo.id == ExameIsolado.microrganismo_id)
+            .join(Exame, Exame.id == ExameIsolado.exame_id)
+            .outerjoin(Setor, Setor.id == Exame.setor_id)
+            .where(
+                Exame.is_active.is_(True),
+                Exame.status != StatusExameEnum.CONTAMINACAO,
+                ExameIsolado.nao_realizado_tecnico.is_(False),
+                DATA_REFERENCIA >= inicio,
+                DATA_REFERENCIA <= fim,
+            )
+            .group_by(macro_grupo, Microrganismo.grupo_fenotipico, Antimicrobiano.nome)
+            .order_by(macro_grupo, Microrganismo.grupo_fenotipico, Antimicrobiano.nome)
+        )
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        resultado = self.db.execute(stmt).all()
+        return [
+            (macro, grupo_fenotipico, nome, testado, sensivel or 0, intermediario or 0, resistente or 0)
+            for macro, grupo_fenotipico, nome, testado, sensivel, intermediario, resistente in resultado
         ]

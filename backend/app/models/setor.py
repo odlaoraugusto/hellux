@@ -6,6 +6,14 @@ padronizar o campo "origem" das Solicitações (ex.: UTI, Enfermaria,
 Ambulatório) - importante para os indicadores de distribuição por setor
 da CCIH não ficarem fragmentados por variações de digitação ("UTI",
 "uti", "U.T.I.").
+
+Fase 1.5 (Matriz de Sensibilidade CCIH): `macro_grupo` agrupa setores em
+famílias maiores (ex.: vários setores "UTI Adulto"/"UTI Neonatal" sob o
+mesmo `macro_grupo="UTI"`) para a matriz não fragmentar por setor
+individual. É catálogo livre por tenant (não enum fixo), mesma filosofia
+já adotada em `tipos_cultura` - cada hospital nomeia como quiser. Campo
+opcional para não exigir backfill imediato dos setores já cadastrados
+(setor sem `macro_grupo` cai num balde "Não classificado" na matriz).
 """
 from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -27,6 +35,7 @@ class Setor(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMi
 
     nome: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     descricao: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    macro_grupo: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Setor {self.nome}>"

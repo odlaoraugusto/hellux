@@ -24,8 +24,9 @@ def criar_material(client, nome="Hemocultura"):
     return _criar_ou_reaproveitar(client, "/api/materiais", nome)
 
 
-def criar_setor(client, nome="UTI"):
-    return _criar_ou_reaproveitar(client, "/api/setores", nome)
+def criar_setor(client, nome="UTI", **extra):
+    payload = {"nome": nome, **extra}
+    return _criar_ou_reaproveitar(client, "/api/setores", nome, payload)
 
 
 def criar_tipo_cultura(client, nome="Cultura Geral"):

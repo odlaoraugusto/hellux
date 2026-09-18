@@ -37,3 +37,28 @@ class IndicadoresCCIHOut(BaseModel):
     distribuicao_por_setor: list[DistribuicaoSetorOut]
     perfil_microbiologico: list[PerfilMicrobiologicoOut]
     taxa_resistencia: list[TaxaResistenciaOut]
+
+
+class MatrizSensibilidadeItemOut(BaseModel):
+    """
+    Uma célula da Matriz de Sensibilidade CCIH (Fase 1.5): resultado
+    agregado de um antimicrobiano testado contra um grupo fenotípico de
+    microrganismos, num macro-grupo de setores.
+    """
+
+    macro_grupo: str
+    grupo_fenotipico: str
+    antimicrobiano: str
+    total_testado: int
+    sensivel: int
+    intermediario: int
+    resistente: int
+    percentual_sensivel: float
+    percentual_intermediario: float
+    percentual_resistente: float
+
+
+class MatrizSensibilidadeOut(BaseModel):
+    periodo_inicio: date
+    periodo_fim: date
+    itens: list[MatrizSensibilidadeItemOut]

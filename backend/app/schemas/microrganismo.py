@@ -6,7 +6,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.microrganismo import GramEnum, MorfologiaEnum, TipoMicrorganismoEnum
+from app.models.microrganismo import (
+    GramEnum,
+    GrupoFenotipicoEnum,
+    MorfologiaEnum,
+    TipoMicrorganismoEnum,
+)
 
 
 class MicrorganismoBase(BaseModel):
@@ -18,6 +23,11 @@ class MicrorganismoBase(BaseModel):
     fermentador: bool | None = Field(default=None)
     familia: str | None = Field(default=None, max_length=100)
     relevancia_clinica: str | None = Field(default=None, max_length=500)
+    grupo_fenotipico: GrupoFenotipicoEnum = Field(
+        default=GrupoFenotipicoEnum.OUTROS,
+        description="Família fenotípica usada pela Matriz de Sensibilidade "
+        "CCIH (ex.: CONS, S_AUREUS, BGN_F, BGN_NF, LEVEDURAS).",
+    )
 
 
 class MicrorganismoCreate(MicrorganismoBase):
@@ -33,6 +43,7 @@ class MicrorganismoUpdate(BaseModel):
     fermentador: bool | None = None
     familia: str | None = Field(default=None, max_length=100)
     relevancia_clinica: str | None = Field(default=None, max_length=500)
+    grupo_fenotipico: GrupoFenotipicoEnum | None = None
 
 
 class MicrorganismoOut(MicrorganismoBase):

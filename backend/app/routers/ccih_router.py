@@ -44,3 +44,30 @@ def obter_indicadores_ccih_vigilancia(
         indicadores.model_dump(mode="json"),
         message="Indicadores de vigilância calculados com sucesso.",
     )
+
+
+@router.get("/matriz-sensibilidade")
+def obter_matriz_sensibilidade(
+    data_inicio: date | None = Query(default=None),
+    data_fim: date | None = Query(default=None),
+    apenas_vigilancia: bool | None = Query(
+        default=False,
+        description="False (padrão) exclui exames de vigilância, True traz "
+        "somente vigilância, omitir o parâmetro como nulo remove o filtro.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Matriz de Sensibilidade CCIH: agrupa os resultados de antibiograma por
+    macro-grupo de setor x família fenotípica de microrganismo x
+    antimicrobiano, com os três percentuais S/I/R. Endpoint aditivo -
+    não substitui `/indicadores` nem `/indicadores/vigilancia`.
+    """
+    service = CCIHService(db)
+    matriz = service.matriz_sensibilidade(
+        data_inicio, data_fim, apenas_vigilancia=apenas_vigilancia
+    )
+    return success_response(
+        matriz.model_dump(mode="json"),
+        message="Matriz de sensibilidade calculada com sucesso.",
+    )

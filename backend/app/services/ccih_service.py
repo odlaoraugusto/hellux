@@ -21,6 +21,8 @@ from app.repositories.setor_repository import SetorRepository
 from app.schemas.ccih import (
     DistribuicaoSetorOut,
     IndicadoresCCIHOut,
+    MatrizSensibilidadeItemOut,
+    MatrizSensibilidadeOut,
     PerfilMicrobiologicoOut,
     TaxaResistenciaOut,
 )
@@ -52,6 +54,46 @@ class CCIHService:
     ) -> IndicadoresCCIHOut:
         """Indicadores dedicados aos exames de vigilância (rastreio/colonização)."""
         return self._calcular(data_inicio, data_fim, setor_id, apenas_vigilancia=True)
+
+    def matriz_sensibilidade(
+        self,
+        data_inicio: date | None = None,
+        data_fim: date | None = None,
+        apenas_vigilancia: bool | None = False,
+    ) -> MatrizSensibilidadeOut:
+        """
+        Matriz de Sensibilidade CCIH (Fase 1.5) - agrupa por macro-setor x
+        família fenotípica x antimicrobiano, com os três percentuais
+        S/I/R. Endpoint aditivo, não substitui `indicadores()` (ver
+        docstring de `CCIHRepository.matriz_sensibilidade`).
+        """
+        hoje = date.today()
+        inicio = data_inicio or _primeiro_dia_do_mes(hoje)
+        fim = data_fim or hoje
+
+        itens_raw = self.repository.matriz_sensibilidade(
+            inicio, fim, apenas_vigilancia=apenas_vigilancia
+        )
+        itens = [
+            MatrizSensibilidadeItemOut(
+                macro_grupo=macro_grupo,
+                grupo_fenotipico=grupo_fenotipico,
+                antimicrobiano=antimicrobiano,
+                total_testado=testado,
+                sensivel=sensivel,
+                intermediario=intermediario,
+                resistente=resistente,
+                percentual_sensivel=round((sensivel / testado) * 100, 1) if testado > 0 else 0.0,
+                percentual_intermediario=round((intermediario / testado) * 100, 1)
+                if testado > 0
+                else 0.0,
+                percentual_resistente=round((resistente / testado) * 100, 1) if testado > 0 else 0.0,
+            )
+            for macro_grupo, grupo_fenotipico, antimicrobiano, testado, sensivel, intermediario, resistente
+            in itens_raw
+        ]
+
+        return MatrizSensibilidadeOut(periodo_inicio=inicio, periodo_fim=fim, itens=itens)
 
     def _nome_do_setor(self, setor_id: uuid.UUID | None) -> str | None:
         if not setor_id:
