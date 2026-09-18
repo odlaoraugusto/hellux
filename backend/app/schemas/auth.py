@@ -1,7 +1,7 @@
 """
 Schemas do módulo de Autenticação (Sprint 12).
 """
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class TokenOut(BaseModel):
@@ -10,5 +10,5 @@ class TokenOut(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    login: str
     senha: str

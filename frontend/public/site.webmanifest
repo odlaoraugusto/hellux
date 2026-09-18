@@ -1,6 +1,6 @@
 {
-  "name": "MicroGest - Sistema Inteligente de Gestão Microbiológica",
-  "short_name": "MicroGest",
+  "name": "Hellux - Sistema Inteligente de Gestão Microbiológica",
+  "short_name": "Hellux",
   "icons": [
     { "src": "/android192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icone512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

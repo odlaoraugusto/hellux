@@ -1,5 +1,5 @@
 """
-Mixins reutilizáveis pelos models do MicroGest.
+Mixins reutilizáveis pelos models do Hellux.
 
 Center para regras transversais definidas no Documento Mestre (seção 9 -
 Segurança): soft delete, timestamps e auditoria básica de criação/edição.

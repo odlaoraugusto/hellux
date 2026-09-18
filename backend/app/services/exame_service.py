@@ -80,7 +80,7 @@ class ExameService:
         paciente = self._resolver_paciente(dados.paciente_prontuario, dados.paciente_nome)
 
         # 1-2. Cria a solicitação já como COLETADO - o coração da mudança:
-        # no fluxo real, a coleta já aconteceu antes de chegar ao MicroGest.
+        # no fluxo real, a coleta já aconteceu antes de chegar ao Hellux.
         solicitacao_dados = SolicitacaoCreate(
             paciente_id=paciente.id,
             material=dados.material,

@@ -91,7 +91,7 @@ export default function RelatoriosPage() {
     try {
       const params: Record<string, string> = { data_inicio: dataInicio, data_fim: dataFim };
       if (setor) params.origem = setor;
-      await baixarArquivo("/api/relatorios/ccih.pdf", "microgest_relatorio_ccih.pdf", params);
+      await baixarArquivo("/api/relatorios/ccih.pdf", "hellux_relatorio_ccih.pdf", params);
     } catch (err: unknown) {
       setErroCcih(await extrairMensagemErroDownload(err));
     } finally {
@@ -107,7 +107,7 @@ export default function RelatoriosPage() {
       if (setor) params.origem = setor;
       await baixarArquivo(
         "/api/relatorios/ccih-vigilancia.pdf",
-        "microgest_relatorio_ccih_vigilancia.pdf",
+        "hellux_relatorio_ccih_vigilancia.pdf",
         params
       );
     } catch (err: unknown) {
@@ -125,7 +125,7 @@ export default function RelatoriosPage() {
           descricao="Exporta a lista completa de pacientes cadastrados, com setor, leito e status de internação."
           botaoLabel="Baixar .xlsx"
           onBaixar={() =>
-            baixarArquivo("/api/relatorios/pacientes.xlsx", "microgest_pacientes.xlsx")
+            baixarArquivo("/api/relatorios/pacientes.xlsx", "hellux_pacientes.xlsx")
           }
         />
         <RelatorioCard
@@ -133,7 +133,7 @@ export default function RelatoriosPage() {
           descricao="Exporta todas as solicitações registradas, com material, origem, prioridade e status."
           botaoLabel="Baixar .xlsx"
           onBaixar={() =>
-            baixarArquivo("/api/relatorios/solicitacoes.xlsx", "microgest_solicitacoes.xlsx")
+            baixarArquivo("/api/relatorios/solicitacoes.xlsx", "hellux_solicitacoes.xlsx")
           }
         />
         <RelatorioCard
@@ -143,7 +143,7 @@ export default function RelatoriosPage() {
           onBaixar={() =>
             baixarArquivo(
               "/api/relatorios/culturas-parciais.xlsx",
-              "microgest_resultados_parciais.xlsx"
+              "hellux_resultados_parciais.xlsx"
             )
           }
         />

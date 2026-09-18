@@ -37,12 +37,12 @@ class UsuarioService:
         return usuario
 
     def criar(self, dados: UsuarioCreate):
-        email_normalizado = dados.email.lower()
-        existente = self.repository.get_by_email(email_normalizado)
+        login_normalizado = dados.login.lower()
+        existente = self.repository.get_by_login(login_normalizado)
         if existente:
             raise BusinessRuleError(
-                "Já existe um usuário cadastrado com este e-mail.",
-                errors=[f"email '{dados.email}' já está em uso."],
+                "Já existe um usuário cadastrado com este login.",
+                errors=[f"login '{dados.login}' já está em uso."],
             )
 
         eh_primeiro_usuario = self.sistema_precisa_de_bootstrap()
@@ -51,7 +51,7 @@ class UsuarioService:
         return self.repository.create(
             {
                 "nome": dados.nome,
-                "email": email_normalizado,
+                "login": login_normalizado,
                 "senha_hash": hash_senha(dados.senha),
                 "perfil": perfil,
             }

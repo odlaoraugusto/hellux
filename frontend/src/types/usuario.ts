@@ -3,7 +3,7 @@ export type PerfilUsuario = "ADMIN" | "BIOMEDICO" | "TECNICO" | "VISUALIZADOR";
 export interface Usuario {
   id: string;
   nome: string;
-  email: string;
+  login: string;
   perfil: PerfilUsuario;
   is_active: boolean;
   created_at: string;
@@ -19,7 +19,7 @@ export interface UsuarioListagem {
 
 export interface UsuarioFormData {
   nome: string;
-  email: string;
+  login: string;
   senha: string;
   perfil: PerfilUsuario;
 }

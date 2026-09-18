@@ -1,7 +1,7 @@
 export interface LogAuditoria {
   id: string;
   usuario_id: string | null;
-  usuario_email: string | null;
+  usuario_login: string | null;
   metodo: string;
   caminho: string;
   status_code: number;

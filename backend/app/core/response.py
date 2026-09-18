@@ -1,5 +1,5 @@
 """
-Contrato único de respostas da API MicroGest.
+Contrato único de respostas da API Hellux.
 
 Toda resposta da API segue este formato, conforme definido no
 Documento Mestre (seção 8 - Padrão da API):

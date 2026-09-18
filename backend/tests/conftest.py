@@ -96,15 +96,15 @@ def authenticated_client(client):
         "/api/usuarios",
         json={
             "nome": "Usuário de Teste",
-            "email": "teste@microgest.com",
+            "login": "teste",
             "senha": "senha-de-teste-123",
             "perfil": "ADMIN",
         },
     )
-    login = client.post(
+    resposta_login = client.post(
         "/api/auth/login",
-        data={"username": "teste@microgest.com", "password": "senha-de-teste-123"},
+        data={"username": "teste", "password": "senha-de-teste-123"},
     )
-    token = login.json()["data"]["access_token"]
+    token = resposta_login.json()["data"]["access_token"]
     client.headers.update({"Authorization": f"Bearer {token}"})
     return client

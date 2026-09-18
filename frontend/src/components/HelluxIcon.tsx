@@ -1,4 +1,4 @@
-interface MicroGestIconProps {
+interface HelluxIconProps {
   size?: number;
   className?: string;
   /**
@@ -10,15 +10,15 @@ interface MicroGestIconProps {
 }
 
 /**
- * Símbolo oficial do MicroGest, vetorizado a partir do Manual de
+ * Símbolo oficial do Hellux, vetorizado a partir do Manual de
  * Identidade Visual v1.0 (ver design/svg/). Usar sempre este componente em
  * vez de recriar o ícone ou usar emojis.
  */
-export default function MicroGestIcon({
+export default function HelluxIcon({
   size = 32,
   className,
   variante = "colorido",
-}: MicroGestIconProps) {
+}: HelluxIconProps) {
   const src = variante === "negativo" ? "/simbolo-negativo.svg" : "/simbolo.svg";
   return (
     <img
@@ -26,7 +26,7 @@ export default function MicroGestIcon({
       width={size}
       height={size}
       className={className}
-      alt="MicroGest"
+      alt="Hellux"
       style={{ display: "block" }}
     />
   );

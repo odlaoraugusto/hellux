@@ -1,4 +1,4 @@
-app = "microgest-backend"
+app = "hellux-backend"
 primary_region = "gru"
 
 [build]
@@ -8,7 +8,7 @@ primary_region = "gru"
   release_command = "alembic upgrade head"
 
 [env]
-  APP_NAME = "MicroGest"
+  APP_NAME = "Hellux"
   APP_VERSION = "1.2.0"
   ENVIRONMENT = "production"
   DEBUG = "false"

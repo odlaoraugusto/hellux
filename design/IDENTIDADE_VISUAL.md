@@ -1,6 +1,6 @@
-# Identidade Visual do MicroGest
+# Identidade Visual do Hellux
 
-Fonte oficial: `manual/MicroGest_Manual_de_Identidade_Visual.docx` (v1.0, Julho de 2026).
+Fonte oficial: `manual/Hellux_Manual_de_Identidade_Visual.docx` (v1.0, Julho de 2026).
 Este arquivo consolida as regras que o frontend (`frontend/src/styles/tokens.css`)
 segue à risca. Sempre que o manual evoluir, atualizar os dois lugares juntos.
 
@@ -40,20 +40,20 @@ usados nas versões anteriores da interface.
 re-extraído por vetorização direto do ícone oficial em alta resolução
 (fidelidade total ao desenho aprovado), em `design/svg/` e `design/png/`:
 
-- `microgest-simbolo-colorido.svg` — símbolo principal, colorido (azul +
+- `hellux-simbolo-colorido.svg` — símbolo principal, colorido (azul +
   verde), fundo transparente. Copiado para `frontend/public/simbolo.svg`,
-  fonte de verdade do favicon e do componente React `MicroGestIcon`
+  fonte de verdade do favicon e do componente React `HelluxIcon`
   (variante `colorido`, padrão). Usar sobre fundos claros.
-- `microgest-simbolo-negativo.svg` — símbolo branco sobre tile azul
+- `hellux-simbolo-negativo.svg` — símbolo branco sobre tile azul
   primário arredondado (532×532, já com o próprio fundo embutido). Copiado
   para `frontend/public/simbolo-negativo.svg`, usado nos ícones de
-  aplicação e no componente `MicroGestIcon` (variante `negativo`) para
+  aplicação e no componente `HelluxIcon` (variante `negativo`) para
   superfícies escuras, como a sidebar.
-- `microgest-simbolo-monocromatico.svg` / `microgest-simbolo-monocromatico-negativo.svg`
+- `hellux-simbolo-monocromatico.svg` / `hellux-simbolo-monocromatico-negativo.svg`
   — variações em tom único (impressão P&B, carimbos, marca d'água); não
   usadas ao vivo na interface, mantidas como referência de marca.
-- `microgest-logo-horizontal.svg` / `microgest-logo-vertical.svg` — lockup
-  completo: símbolo + wordmark "MicroGest" + tagline, com o texto como
+- `hellux-logo-horizontal.svg` / `hellux-logo-vertical.svg` — lockup
+  completo: símbolo + wordmark "Hellux" + tagline, com o texto como
   `<text font-family="Poppins">` real (não path). Para usar ao vivo na
   interface, inlinar o SVG diretamente no JSX/DOM em vez de referenciar via
   `<img src>`, para garantir que a fonte Poppins já carregada pela página
@@ -66,11 +66,11 @@ Onde a marca aparece hoje no sistema:
   `ios180.png`, `apple-touch-icon-152/167.png`, `windows256.png`,
   `icone512.png`, `maskable-512.png`, referenciados em
   `site.webmanifest`/`index.html`).
-- Sidebar (`MicroGestIcon variante="negativo"`, fundo `--mg-sidebar-bg` =
-  cor primária) e painel de marca da tela de Login (`MicroGestIcon
+- Sidebar (`HelluxIcon variante="negativo"`, fundo `--mg-sidebar-bg` =
+  cor primária) e painel de marca da tela de Login (`HelluxIcon
   variante="negativo"` sobre fundo primário, layout split-screen).
 - Cabeçalho do relatório PDF da CCIH (`backend/app/assets/logo.png`, a
-  partir de `microgest-simbolo-colorido-1024.png`).
+  partir de `hellux-simbolo-colorido-1024.png`).
 
 - Redução mínima: 24px em telas / 8mm em impressos — nunca usar o símbolo
   abaixo disso.

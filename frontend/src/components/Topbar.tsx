@@ -76,7 +76,7 @@ export default function Topbar({ titulo, subtitulo }: TopbarProps) {
             fontWeight: 600,
             fontSize: 14,
           }}
-          title={usuario?.email}
+          title={usuario?.login}
         >
           {iniciais}
         </div>

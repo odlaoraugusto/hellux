@@ -32,16 +32,16 @@ if not exist "frontend\node_modules" (
 )
 
 echo Ligando o backend...
-start "MicroGest - Backend (feche esta janela para desligar)" cmd /k "cd /d "%~dp0backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
+start "Hellux - Backend (feche esta janela para desligar)" cmd /k "cd /d "%~dp0backend" && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 
 echo Ligando o frontend...
-start "MicroGest - Frontend (feche esta janela para desligar)" cmd /k "cd /d "%~dp0frontend" && npm run dev"
+start "Hellux - Frontend (feche esta janela para desligar)" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
 echo Aguardando o backend responder...
 :esperar
 timeout /t 2 /nobreak >nul
-curl -s -o nul -w "%%{http_code}" http://localhost:8000/api/health > "%TEMP%\microgest_health.txt"
-set /p HTTP_CODE=<"%TEMP%\microgest_health.txt"
+curl -s -o nul -w "%%{http_code}" http://localhost:8000/api/health > "%TEMP%\hellux_health.txt"
+set /p HTTP_CODE=<"%TEMP%\hellux_health.txt"
 if not "%HTTP_CODE%"=="200" goto esperar
 
 echo Pronto! Abrindo no navegador...

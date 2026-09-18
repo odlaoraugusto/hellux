@@ -16,9 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Usuário não-root - nunca rodar a aplicação como root em produção.
-RUN useradd --create-home --shell /bin/bash microgest \
-    && chown -R microgest:microgest /app
-USER microgest
+RUN useradd --create-home --shell /bin/bash hellux \
+    && chown -R hellux:hellux /app
+USER hellux
 
 EXPOSE 8000
 

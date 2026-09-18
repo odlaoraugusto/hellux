@@ -1,5 +1,5 @@
 """
-Ponto de entrada da API MicroGest.
+Ponto de entrada da API Hellux.
 
 Fluxo de arquitetura (Documento Mestre, seção 4):
 Frontend -> Router -> Service -> Repository -> PostgreSQL
@@ -38,7 +38,7 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description=(
-        "API do MicroGest - Sistema Inteligente de Gestão Microbiológica. "
+        "API do Hellux - Sistema Inteligente de Gestão Microbiológica. "
         "Plataforma para gestão da microbiologia hospitalar, do cadastro de "
         "pacientes à geração de indicadores epidemiológicos e apoio à CCIH."
     ),

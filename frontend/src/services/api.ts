@@ -1,6 +1,6 @@
 import axios, { AxiosError } from "axios";
 
-export const TOKEN_STORAGE_KEY = "microgest_token";
+export const TOKEN_STORAGE_KEY = "hellux_token";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
@@ -32,7 +32,7 @@ api.interceptors.response.use(
 );
 
 /**
- * Envelope de resposta padrão da API MicroGest, conforme o contrato
+ * Envelope de resposta padrão da API Hellux, conforme o contrato
  * definido no Documento Mestre (seção 8 - Padrão da API).
  */
 export interface ApiResponse<T> {

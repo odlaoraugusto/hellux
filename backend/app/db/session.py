@@ -18,7 +18,7 @@ SessionLocal = sessionmaker(
 
 
 class Base(DeclarativeBase):
-    """Classe base declarativa para todos os models do MicroGest."""
+    """Classe base declarativa para todos os models do Hellux."""
 
     pass
 

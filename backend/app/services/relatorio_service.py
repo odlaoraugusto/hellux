@@ -176,9 +176,9 @@ class RelatorioService:
             else self.ccih_service.indicadores(data_inicio, data_fim, origem=origem)
         )
         titulo = (
-            "MicroGest — Relatório CCIH (Cultura de Vigilância)"
+            "Hellux — Relatório CCIH (Cultura de Vigilância)"
             if vigilancia
-            else "MicroGest — Relatório CCIH"
+            else "Hellux — Relatório CCIH"
         )
         styles = getSampleStyleSheet()
 

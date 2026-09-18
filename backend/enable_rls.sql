@@ -1,5 +1,5 @@
 -- ============================================================
--- MicroGest — Habilita Row Level Security em todas as tabelas
+-- Hellux — Habilita Row Level Security em todas as tabelas
 --
 -- O backend conecta direto no Postgres via SQLAlchemy (não usa o
 -- Supabase Auth nem o client-side), então RLS aqui não serve pra
@@ -11,7 +11,7 @@
 -- por padrão pros roles anon/authenticated. A conexão direta do
 -- backend (role postgres/superuser) não é afetada.
 --
--- Rode isso no SQL Editor do painel do Supabase do projeto microgest.
+-- Rode isso no SQL Editor do painel do Supabase do projeto hellux.
 -- ============================================================
 
 alter table pacientes enable row level security;

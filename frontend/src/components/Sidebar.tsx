@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { NAV_ITEMS } from "../router/navItems";
-import MicroGestIcon from "./MicroGestIcon";
+import HelluxIcon from "./HelluxIcon";
 
 export default function Sidebar() {
   return (
@@ -16,11 +16,10 @@ export default function Sidebar() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px 24px 8px" }}>
-        <MicroGestIcon size={34} variante="negativo" />
+        <HelluxIcon size={34} variante="negativo" />
         <div>
-          <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.1 }}>
-            <span style={{ color: "#fff" }}>Micro</span>
-            <span style={{ color: "var(--mg-secundaria)" }}>Gest</span>
+          <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.1, color: "#fff" }}>
+            Hellux
           </div>
           <div style={{ fontSize: 10, color: "var(--mg-cinza-400)" }}>
             Gestão Microbiológica

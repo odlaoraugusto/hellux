@@ -1,5 +1,5 @@
 """
-Registro central de todos os models do MicroGest.
+Registro central de todos os models do Hellux.
 
 Importar todos os models aqui garante que o Alembic (autogenerate) e o
 SQLAlchemy metadata os enxerguem corretamente.

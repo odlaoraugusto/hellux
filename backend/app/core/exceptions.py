@@ -13,7 +13,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.response import error_response
 
-logger = logging.getLogger("microgest.erros")
+logger = logging.getLogger("hellux.erros")
 
 
 class NotFoundError(Exception):

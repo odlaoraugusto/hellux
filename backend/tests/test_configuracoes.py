@@ -9,13 +9,13 @@ previamente cadastrado.
 """
 
 
-def _criar_admin_e_logar(client, email="admin_cfg@microgest.com"):
+def _criar_admin_e_logar(client, login="admin_cfg"):
     client.post(
         "/api/usuarios",
-        json={"nome": "Admin Config", "email": email, "senha": "senhaadmin123", "perfil": "ADMIN"},
+        json={"nome": "Admin Config", "login": login, "senha": "senhaadmin123", "perfil": "ADMIN"},
     )
     token = client.post(
-        "/api/auth/login", data={"username": email, "password": "senhaadmin123"}
+        "/api/auth/login", data={"username": login, "password": "senhaadmin123"}
     ).json()["data"]["access_token"]
     return token
 

@@ -15,16 +15,16 @@ version: "3.9"
 services:
   db:
     image: postgres:16-alpine
-    container_name: microgest_db
+    container_name: hellux_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: microgest
+      POSTGRES_USER: hellux
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
-      POSTGRES_DB: microgest
+      POSTGRES_DB: hellux
     volumes:
-      - microgest_postgres_data:/var/lib/postgresql/data
+      - hellux_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U microgest"]
+      test: ["CMD-SHELL", "pg_isready -U hellux"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,13 +37,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    container_name: microgest_backend
+    container_name: hellux_backend
     restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+psycopg2://microgest:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}@db:5432/microgest
+      DATABASE_URL: postgresql+psycopg2://hellux:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}@db:5432/hellux
     depends_on:
       db:
         condition: service_healthy
@@ -57,7 +57,7 @@ services:
       dockerfile: Dockerfile.prod
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-    container_name: microgest_frontend
+    container_name: hellux_frontend
     restart: unless-stopped
     ports:
       - "80:80"
@@ -65,4 +65,4 @@ services:
       - backend
 
 volumes:
-  microgest_postgres_data:
+  hellux_postgres_data:

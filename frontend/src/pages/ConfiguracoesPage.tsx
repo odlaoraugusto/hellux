@@ -40,7 +40,7 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
   const [erro, setErro] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
+  const [loginValue, setLoginValue] = useState("");
   const [senha, setSenha] = useState("");
   const [perfil, setPerfil] = useState<PerfilUsuario>("VISUALIZADOR");
   const [salvando, setSalvando] = useState(false);
@@ -67,9 +67,9 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
     e.preventDefault();
     setSalvando(true);
     try {
-      await criarUsuario({ nome, email, senha, perfil });
+      await criarUsuario({ nome, login: loginValue, senha, perfil });
       setNome("");
-      setEmail("");
+      setLoginValue("");
       setSenha("");
       setPerfil("VISUALIZADOR");
       setMostrarForm(false);
@@ -115,8 +115,8 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
             <input required value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="mg-field">
-            <label>E-mail</label>
-            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label>Login</label>
+            <input required type="text" value={loginValue} onChange={(e) => setLoginValue(e.target.value)} />
           </div>
           <div className="mg-field">
             <label>Senha</label>
@@ -153,7 +153,7 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
           <thead>
             <tr>
               <th>Nome</th>
-              <th>E-mail</th>
+              <th>Login</th>
               <th>Perfil</th>
               <th>Status</th>
               {souAdmin && <th>Ações</th>}
@@ -163,7 +163,7 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
             {usuarios.map((u) => (
               <tr key={u.id}>
                 <td>{u.nome}</td>
-                <td>{u.email}</td>
+                <td>{u.login}</td>
                 <td>
                   {souAdmin ? (
                     <select
@@ -571,7 +571,7 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
               {logs.map((log) => (
                 <tr key={log.id}>
                   <td>{new Date(log.criado_em).toLocaleString("pt-BR")}</td>
-                  <td>{log.usuario_email ?? "—"}</td>
+                  <td>{log.usuario_login ?? "—"}</td>
                   <td>
                     <span className="mg-badge mg-badge-info">{log.metodo}</span>
                   </td>

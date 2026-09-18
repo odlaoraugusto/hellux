@@ -1,10 +1,10 @@
-MicroGest — Pacote de Identidade Visual (v1.0)
+Hellux — Pacote de Identidade Visual (v1.0)
 ================================================
 
-Este pacote contém todos os arquivos de marca do MicroGest, organizados por tipo.
+Este pacote contém todos os arquivos de marca do Hellux, organizados por tipo.
 Para o guia completo de uso (cores, tipografia, regras de aplicação), consulte:
 
-  documento/MicroGest_Manual_de_Identidade_Visual.docx
+  documento/Hellux_Manual_de_Identidade_Visual.docx
 
 Estrutura das pastas
 ---------------------
@@ -13,13 +13,13 @@ Estrutura das pastas
 
 /svg
     Vetores editáveis (escaláveis para qualquer tamanho sem perda de qualidade).
-    - microgest-simbolo-colorido.svg              -> símbolo isolado, versão padrão
-    - microgest-simbolo-negativo.svg               -> símbolo em tile navy, ícone branco (fundos escuros)
-    - microgest-simbolo-monocromatico.svg          -> símbolo em tom único escuro
-    - microgest-simbolo-monocromatico-negativo.svg -> símbolo em tom único claro/branco
-    - microgest-logo-horizontal.svg                -> logotipo completo (uso principal)
-    - microgest-logo-vertical.svg                  -> logotipo completo, versão vertical
-    - microgest-logo-horizontal-negativo.svg       -> logotipo para fundos escuros
+    - hellux-simbolo-colorido.svg              -> símbolo isolado, versão padrão
+    - hellux-simbolo-negativo.svg               -> símbolo em tile navy, ícone branco (fundos escuros)
+    - hellux-simbolo-monocromatico.svg          -> símbolo em tom único escuro
+    - hellux-simbolo-monocromatico-negativo.svg -> símbolo em tom único claro/branco
+    - hellux-logo-horizontal.svg                -> logotipo completo (uso principal)
+    - hellux-logo-vertical.svg                  -> logotipo completo, versão vertical
+    - hellux-logo-horizontal-negativo.svg       -> logotipo para fundos escuros
 
 /png/logos
     Logotipos e símbolo em alta resolução (PNG), prontos para documentos e apresentações.

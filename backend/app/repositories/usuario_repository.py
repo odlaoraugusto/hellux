@@ -12,13 +12,12 @@ class UsuarioRepository(BaseRepository[Usuario]):
     def __init__(self, db: Session):
         super().__init__(db, Usuario)
 
-    def get_by_email(self, email: str) -> Usuario | None:
+    def get_by_login(self, login: str) -> Usuario | None:
         # Comparação case-insensitive EXATA - de propósito não usa .ilike(),
         # que interpreta "%" e "_" como wildcard SQL. Como o login vem via
-        # OAuth2PasswordRequestForm (sem validação de formato de e-mail), um
-        # username com "%"/"_" viraria wildcard e poderia casar com uma
-        # conta diferente da que o usuário digitou.
-        stmt = select(Usuario).where(func.lower(Usuario.email) == email.lower())
+        # OAuth2PasswordRequestForm, um valor com "%"/"_" viraria wildcard e
+        # poderia casar com uma conta diferente da que o usuário digitou.
+        stmt = select(Usuario).where(func.lower(Usuario.login) == login.lower())
         return self.db.scalars(stmt).first()
 
     def existe_algum_usuario(self) -> bool:

@@ -3,13 +3,13 @@ Testes do módulo de Auditoria (Sprint 13).
 """
 
 
-def _criar_admin_e_logar(client, email="admin_audit@microgest.com"):
+def _criar_admin_e_logar(client, login="admin_audit"):
     client.post(
         "/api/usuarios",
-        json={"nome": "Admin Audit", "email": email, "senha": "senhaadmin123", "perfil": "ADMIN"},
+        json={"nome": "Admin Audit", "login": login, "senha": "senhaadmin123", "perfil": "ADMIN"},
     )
     token = client.post(
-        "/api/auth/login", data={"username": email, "password": "senhaadmin123"}
+        "/api/auth/login", data={"username": login, "password": "senhaadmin123"}
     ).json()["data"]["access_token"]
     return token
 
@@ -69,8 +69,8 @@ def test_log_registra_usuario_autenticado(client):
     )
 
     body = response.json()["data"]
-    emails = [item["usuario_email"] for item in body["items"]]
-    assert "admin_audit@microgest.com" in emails
+    logins = [item["usuario_login"] for item in body["items"]]
+    assert "admin_audit" in logins
 
 
 def test_get_nao_gera_log(client):

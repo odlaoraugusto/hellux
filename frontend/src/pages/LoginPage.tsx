@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import MicroGestIcon from "../components/MicroGestIcon";
+import HelluxIcon from "../components/HelluxIcon";
 import { extrairMensagemErro } from "../services/api";
 
 export default function LoginPage() {
@@ -9,7 +9,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState("");
+  const [loginValue, setLoginValue] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [entrando, setEntrando] = useState(false);
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setErro(null);
     setEntrando(true);
     try {
-      await login(email, senha);
+      await login(loginValue, senha);
       navigate("/");
     } catch (err: unknown) {
       setErro(extrairMensagemErro(err, "Não foi possível entrar. Tente novamente."));
@@ -40,10 +40,9 @@ export default function LoginPage() {
       {/* Painel esquerdo - identidade da marca */}
       <div className="mg-login-painel-marca">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }}>
-          <MicroGestIcon size={40} variante="negativo" />
-          <span style={{ fontWeight: 700, fontSize: 20, lineHeight: 1 }}>
-            <span style={{ color: "#fff" }}>Micro</span>
-            <span style={{ color: "var(--mg-secundaria)" }}>Gest</span>
+          <HelluxIcon size={40} variante="negativo" />
+          <span style={{ fontWeight: 700, fontSize: 20, lineHeight: 1, color: "#fff" }}>
+            Hellux
           </span>
         </div>
 
@@ -75,14 +74,14 @@ export default function LoginPage() {
             )}
 
             <div className="mg-field" style={{ marginBottom: 14 }}>
-              <label>Usuário ou e-mail</label>
+              <label>Usuário</label>
               <input
-                type="email"
+                type="text"
                 required
                 autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@hospital.com.br"
+                value={loginValue}
+                onChange={(e) => setLoginValue(e.target.value)}
+                placeholder="usuario"
               />
             </div>
 
@@ -151,7 +150,7 @@ export default function LoginPage() {
             criado se torna administrador automaticamente.
           </p>
           <p style={{ fontSize: 11, color: "var(--mg-cinza-400)", textAlign: "center", marginTop: 6 }}>
-            MicroGest &copy; {new Date().getFullYear()} · v1.2 · Ambiente hospitalar
+            Hellux &copy; {new Date().getFullYear()} · v1.2 · Ambiente hospitalar
           </p>
         </div>
       </div>

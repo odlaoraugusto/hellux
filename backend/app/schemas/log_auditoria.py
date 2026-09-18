@@ -12,7 +12,7 @@ class LogAuditoriaOut(BaseModel):
 
     id: uuid.UUID
     usuario_id: uuid.UUID | None
-    usuario_email: str | None
+    usuario_login: str | None
     metodo: str
     caminho: str
     status_code: int

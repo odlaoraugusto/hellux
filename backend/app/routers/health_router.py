@@ -12,5 +12,5 @@ settings = get_settings()
 def health_check():
     return success_response(
         {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION},
-        message="MicroGest API operacional.",
+        message="Hellux API operacional.",
     )

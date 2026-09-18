@@ -18,7 +18,7 @@ from app.core.security import decodificar_access_token
 from app.db import session as db_session
 from app.models.log_auditoria import LogAuditoria
 
-logger = logging.getLogger("microgest.auditoria")
+logger = logging.getLogger("hellux.auditoria")
 
 METODOS_AUDITADOS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -34,7 +34,7 @@ def _extrair_usuario_do_token(request: Request) -> tuple[str | None, str | None]
     if not payload:
         return None, None
 
-    return payload.get("sub"), payload.get("email")
+    return payload.get("sub"), payload.get("login")
 
 
 class AuditoriaMiddleware(BaseHTTPMiddleware):
@@ -47,14 +47,14 @@ class AuditoriaMiddleware(BaseHTTPMiddleware):
         return response
 
     def _registrar_log(self, request: Request, response) -> None:
-        usuario_id, usuario_email = _extrair_usuario_do_token(request)
+        usuario_id, usuario_login = _extrair_usuario_do_token(request)
         ip_origem = request.client.host if request.client else None
 
         db = db_session.SessionLocal()
         try:
             log = LogAuditoria(
                 usuario_id=usuario_id,
-                usuario_email=usuario_email,
+                usuario_login=usuario_login,
                 metodo=request.method,
                 caminho=request.url.path,
                 status_code=response.status_code,

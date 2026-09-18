@@ -36,21 +36,21 @@ def _download(conteudo: bytes, media_type: str, nome_arquivo: str) -> StreamingR
 def exportar_pacientes_excel(db: Session = Depends(get_db)):
     service = RelatorioService(db)
     conteudo = service.gerar_excel_pacientes()
-    return _download(conteudo, XLSX_MEDIA_TYPE, "microgest_pacientes.xlsx")
+    return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_pacientes.xlsx")
 
 
 @router.get("/solicitacoes.xlsx")
 def exportar_solicitacoes_excel(db: Session = Depends(get_db)):
     service = RelatorioService(db)
     conteudo = service.gerar_excel_solicitacoes()
-    return _download(conteudo, XLSX_MEDIA_TYPE, "microgest_solicitacoes.xlsx")
+    return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_solicitacoes.xlsx")
 
 
 @router.get("/culturas-parciais.xlsx")
 def exportar_culturas_parciais_excel(db: Session = Depends(get_db)):
     service = RelatorioService(db)
     conteudo = service.gerar_excel_culturas_parciais()
-    return _download(conteudo, XLSX_MEDIA_TYPE, "microgest_resultados_parciais.xlsx")
+    return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_resultados_parciais.xlsx")
 
 
 @router.get("/ccih.pdf")
@@ -62,7 +62,7 @@ def exportar_ccih_pdf(
 ):
     service = RelatorioService(db)
     conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, origem=origem)
-    return _download(conteudo, PDF_MEDIA_TYPE, "microgest_relatorio_ccih.pdf")
+    return _download(conteudo, PDF_MEDIA_TYPE, "hellux_relatorio_ccih.pdf")
 
 
 @router.get("/ccih-vigilancia.pdf")
@@ -74,4 +74,4 @@ def exportar_ccih_vigilancia_pdf(
 ):
     service = RelatorioService(db)
     conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, origem=origem, vigilancia=True)
-    return _download(conteudo, PDF_MEDIA_TYPE, "microgest_relatorio_ccih_vigilancia.pdf")
+    return _download(conteudo, PDF_MEDIA_TYPE, "hellux_relatorio_ccih_vigilancia.pdf")

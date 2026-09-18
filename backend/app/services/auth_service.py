@@ -12,10 +12,10 @@ class AuthService:
     def __init__(self, db: Session):
         self.repository = UsuarioRepository(db)
 
-    def autenticar(self, email: str, senha: str) -> str:
-        usuario = self.repository.get_by_email(email.lower())
+    def autenticar(self, login: str, senha: str) -> str:
+        usuario = self.repository.get_by_login(login.lower())
 
-        credenciais_invalidas = AuthenticationError("E-mail ou senha inválidos.")
+        credenciais_invalidas = AuthenticationError("Usuário ou senha inválidos.")
 
         if not usuario or not usuario.is_active:
             raise credenciais_invalidas
@@ -23,4 +23,4 @@ class AuthService:
         if not verificar_senha(senha, usuario.senha_hash):
             raise credenciais_invalidas
 
-        return criar_access_token(usuario.id, usuario.perfil.value, usuario.email)
+        return criar_access_token(usuario.id, usuario.perfil.value, usuario.login)

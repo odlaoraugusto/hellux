@@ -6,9 +6,9 @@ interface TokenResponse {
   token_type: string;
 }
 
-export async function login(email: string, senha: string): Promise<string> {
+export async function login(loginValue: string, senha: string): Promise<string> {
   const body = new URLSearchParams();
-  body.set("username", email);
+  body.set("username", loginValue);
   body.set("password", senha);
 
   const response = await api.post<ApiResponse<TokenResponse>>("/api/auth/login", body, {

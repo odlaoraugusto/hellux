@@ -1,11 +1,11 @@
-# MicroGest
+# Hellux
 
 Sistema Inteligente de Gestão Microbiológica — plataforma web para gestão
 da microbiologia hospitalar, do cadastro de pacientes à geração de
 indicadores epidemiológicos e apoio à CCIH.
 
 > Este repositório é o ponto de partida oficial do projeto, construído do
-> zero seguindo o `MicroGest_Documento_Mestre_Detalhado_v2.docx` e o guia
+> zero seguindo o `Hellux_Documento_Mestre_Detalhado_v2.docx` e o guia
 > de identidade visual do projeto. Ele contém a arquitetura completa e o
 > primeiro módulo (**Pacientes**) 100% funcional, além do esqueleto pronto
 > dos demais módulos para as próximas sprints.
@@ -20,7 +20,7 @@ indicadores epidemiológicos e apoio à CCIH.
 ## Estrutura do projeto
 
 ```
-microgest/
+hellux/
 ├── backend/          # API FastAPI
 │   ├── app/
 │   │   ├── core/         # config, contrato de resposta, exceções
@@ -227,7 +227,7 @@ desses arquivos.
 
 ## Documentação de referência
 
-- `docs/MicroGest_Documento_Mestre_Detalhado_v2.docx` — documento mestre de planejamento.
+- `docs/Hellux_Documento_Mestre_Detalhado_v2.docx` — documento mestre de planejamento.
 - `design/IDENTIDADE_VISUAL.md` — identidade visual oficial.
 
 ## Licença / propriedade do código

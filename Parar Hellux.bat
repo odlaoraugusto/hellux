@@ -1,8 +1,8 @@
 @echo off
-title MicroGest
+title Hellux
 cd /d "%~dp0"
 
-echo Desligando o MicroGest...
+echo Desligando o Hellux...
 docker compose stop
 
 echo Pronto.

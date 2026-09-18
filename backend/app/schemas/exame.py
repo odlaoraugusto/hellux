@@ -4,7 +4,7 @@ Schemas do módulo Exames.
 O módulo Exames é uma camada aditiva que compõe Solicitação + Cultura
 numa única operação, refletindo o fluxo real do laboratório (a coleta
 já aconteceu no sistema do hospital antes de qualquer coisa chegar ao
-MicroGest). Ele não substitui os módulos Solicitações/Microbiologia,
+Hellux). Ele não substitui os módulos Solicitações/Microbiologia,
 que continuam existindo intactos para o caso de agendamento antecipado.
 
 Não há um `ExameOut` próprio: a resposta de todos os endpoints reutiliza

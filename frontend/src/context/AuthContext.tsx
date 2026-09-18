@@ -11,7 +11,7 @@ interface AuthContextValue {
   usuario: Usuario | null;
   carregando: boolean;
   autenticado: boolean;
-  login: (email: string, senha: string) => Promise<void>;
+  login: (login: string, senha: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     carregarUsuario();
   }, []);
 
-  async function login(email: string, senha: string) {
-    await loginService(email, senha);
+  async function login(loginValue: string, senha: string) {
+    await loginService(loginValue, senha);
     await carregarUsuario();
   }
 

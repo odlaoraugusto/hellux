@@ -5,7 +5,7 @@ Protege endpoints sensíveis a ataques de força bruta (ex.: login) contra
 um volume alto de tentativas vindas do mesmo IP em pouco tempo.
 
 Usa `slowapi` (baseado na lib `limits`), com armazenamento em memória do
-próprio processo - suficiente para o MicroGest hoje. Se no futuro o app
+próprio processo - suficiente para o Hellux hoje. Se no futuro o app
 escalar para múltiplas instâncias/workers de forma que a imprecisão do
 armazenamento em memória (cada worker com sua própria contagem) vire um
 problema real, o `storage_uri` abaixo pode passar a apontar para um Redis

@@ -3,7 +3,7 @@ version: "3.9"
 services:
   backend:
     build: ./backend
-    container_name: microgest_backend
+    container_name: hellux_backend
     restart: unless-stopped
     env_file:
       - ./backend/.env
@@ -17,7 +17,7 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: microgest_frontend
+    container_name: hellux_frontend
     restart: unless-stopped
     environment:
       VITE_API_URL: http://localhost:8000

@@ -25,7 +25,7 @@ class Usuario(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "usuarios"
 
     nome: Mapped[str] = mapped_column(String(200), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    login: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     perfil: Mapped[PerfilUsuarioEnum] = mapped_column(
         Enum(PerfilUsuarioEnum, name="perfil_usuario_enum"),
@@ -33,4 +33,4 @@ class Usuario(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     )
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<Usuario {self.email} ({self.perfil})>"
+        return f"<Usuario {self.login} ({self.perfil})>"

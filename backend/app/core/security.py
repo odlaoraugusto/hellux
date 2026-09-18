@@ -1,5 +1,5 @@
 """
-Utilitários de segurança do MicroGest.
+Utilitários de segurança do Hellux.
 
 Centraliza hashing de senha (bcrypt via passlib) e criação/validação de
 tokens JWT (via python-jose). Nenhuma senha em texto puro é armazenada
@@ -28,14 +28,14 @@ def verificar_senha(senha_texto_puro: str, senha_hash: str) -> bool:
     return _pwd_context.verify(senha_texto_puro, senha_hash)
 
 
-def criar_access_token(usuario_id: uuid.UUID, perfil: str, email: str) -> str:
+def criar_access_token(usuario_id: uuid.UUID, perfil: str, login: str) -> str:
     expira_em = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload = {
         "sub": str(usuario_id),
         "perfil": perfil,
-        "email": email,
+        "login": login,
         "exp": expira_em,
         "iat": datetime.now(timezone.utc),
     }

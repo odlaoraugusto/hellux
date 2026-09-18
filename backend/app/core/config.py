@@ -1,5 +1,5 @@
 """
-Configurações centrais do MicroGest.
+Configurações centrais do Hellux.
 
 Todas as variáveis sensíveis (banco, segredos, etc.) vêm de variáveis de
 ambiente / arquivo .env, nunca hardcoded no código-fonte.
@@ -10,14 +10,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Aplicação
-    APP_NAME: str = "MicroGest"
+    APP_NAME: str = "Hellux"
     APP_VERSION: str = "1.2.0"
     ENVIRONMENT: str = "development"  # development | staging | production
     DEBUG: bool = True
 
     # Banco de dados
     DATABASE_URL: str = (
-        "postgresql+psycopg2://microgest:microgest@localhost:5432/microgest"
+        "postgresql+psycopg2://hellux:hellux@localhost:5432/hellux"
     )
 
     # CORS - endereços do frontend autorizados a consumir a API
