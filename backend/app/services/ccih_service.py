@@ -4,27 +4,26 @@ Service do módulo CCIH (Sprint 9).
 Por padrão, os indicadores são calculados sobre o mês corrente, mas o
 período pode ser customizado (usado pelo Relatório mensal automático e
 por consultas ad-hoc da comissão).
+
+Fase 1 (fluxo de Exame unificado): reescrito sobre `Exame`. O filtro que
+antes era por `origem` (string livre da Solicitação) agora é por
+`setor_id` (FK de verdade pro catálogo de Setores) - o nome do setor
+filtrado continua vindo na resposta em `filtro_setor`, para não quebrar
+o contrato da API.
 """
+import uuid
 from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.models.cultura import GrupoCulturaEnum, ResultadoCulturaEnum
 from app.repositories.ccih_repository import CCIHRepository
+from app.repositories.setor_repository import SetorRepository
 from app.schemas.ccih import (
     DistribuicaoSetorOut,
     IndicadoresCCIHOut,
     PerfilMicrobiologicoOut,
     TaxaResistenciaOut,
 )
-
-# Todo grupo de cultura, exceto vigilância - usado no relatório "geral" pra
-# não misturar cultura de vigilância (rastreio/colonização) com indicadores
-# de infecção. Vigilância tem seu próprio relatório dedicado.
-GRUPOS_GERAL = [
-    g for g in GrupoCulturaEnum if g != GrupoCulturaEnum.VIGILANCIA
-]
-GRUPOS_VIGILANCIA = [GrupoCulturaEnum.VIGILANCIA]
 
 
 def _primeiro_dia_do_mes(referencia: date) -> date:
@@ -34,55 +33,66 @@ def _primeiro_dia_do_mes(referencia: date) -> date:
 class CCIHService:
     def __init__(self, db: Session):
         self.repository = CCIHRepository(db)
+        self.setor_repository = SetorRepository(db)
 
     def indicadores(
         self,
         data_inicio: date | None = None,
         data_fim: date | None = None,
-        origem: str | None = None,
+        setor_id: uuid.UUID | None = None,
     ) -> IndicadoresCCIHOut:
-        """Indicadores gerais - todas as culturas, exceto as de vigilância."""
-        return self._calcular(data_inicio, data_fim, origem, grupos=GRUPOS_GERAL)
+        """Indicadores gerais - todos os exames, exceto os de vigilância."""
+        return self._calcular(data_inicio, data_fim, setor_id, apenas_vigilancia=False)
 
     def indicadores_vigilancia(
         self,
         data_inicio: date | None = None,
         data_fim: date | None = None,
-        origem: str | None = None,
+        setor_id: uuid.UUID | None = None,
     ) -> IndicadoresCCIHOut:
-        """Indicadores dedicados às culturas de vigilância (rastreio/colonização)."""
-        return self._calcular(data_inicio, data_fim, origem, grupos=GRUPOS_VIGILANCIA)
+        """Indicadores dedicados aos exames de vigilância (rastreio/colonização)."""
+        return self._calcular(data_inicio, data_fim, setor_id, apenas_vigilancia=True)
+
+    def _nome_do_setor(self, setor_id: uuid.UUID | None) -> str | None:
+        if not setor_id:
+            return None
+        setor = self.setor_repository.get_by_id(setor_id)
+        return setor.nome if setor else None
 
     def _calcular(
         self,
         data_inicio: date | None,
         data_fim: date | None,
-        origem: str | None,
-        grupos: list[GrupoCulturaEnum],
+        setor_id: uuid.UUID | None,
+        apenas_vigilancia: bool,
     ) -> IndicadoresCCIHOut:
         hoje = date.today()
         inicio = data_inicio or _primeiro_dia_do_mes(hoje)
         fim = data_fim or hoje
 
-        total_solicitacoes = self.repository.total_solicitacoes(
-            inicio, fim, origem=origem, grupos=grupos
+        total_exames = self.repository.total_exames(
+            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
         )
 
-        total_finalizadas = self.repository.total_culturas_por_resultado(
-            inicio, fim, origem=origem, grupos=grupos
+        total_finalizados = self.repository.total_exames_por_status(
+            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
         )
-        total_positivas = self.repository.total_culturas_por_resultado(
-            inicio, fim, resultado=ResultadoCulturaEnum.POSITIVA, origem=origem, grupos=grupos
+        total_positivos = self.repository.total_exames_por_status(
+            inicio,
+            fim,
+            apenas_positivos=True,
+            setor_id=setor_id,
+            apenas_vigilancia=apenas_vigilancia,
         )
 
         taxa_positividade = (
-            round((total_positivas / total_finalizadas) * 100, 1)
-            if total_finalizadas > 0
+            round((total_positivos / total_finalizados) * 100, 1)
+            if total_finalizados > 0
             else 0.0
         )
 
         distribuicao_raw = self.repository.distribuicao_por_setor(
-            inicio, fim, origem=origem, grupos=grupos
+            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
         )
         distribuicao = [
             DistribuicaoSetorOut(setor=setor, total_positivas=total)
@@ -90,7 +100,7 @@ class CCIHService:
         ]
 
         perfil_raw = self.repository.perfil_microbiologico(
-            inicio, fim, origem=origem, grupos=grupos
+            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
         )
         total_isolados = sum(qtd for _, qtd in perfil_raw)
         perfil = [
@@ -105,7 +115,7 @@ class CCIHService:
         ]
 
         resistencia_raw = self.repository.taxa_resistencia(
-            inicio, fim, origem=origem, grupos=grupos
+            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
         )
         resistencia = [
             TaxaResistenciaOut(
@@ -126,9 +136,9 @@ class CCIHService:
         return IndicadoresCCIHOut(
             periodo_inicio=inicio,
             periodo_fim=fim,
-            filtro_setor=origem,
-            total_solicitacoes=total_solicitacoes,
-            total_culturas_positivas=total_positivas,
+            filtro_setor=self._nome_do_setor(setor_id),
+            total_solicitacoes=total_exames,
+            total_culturas_positivas=total_positivos,
             taxa_positividade=taxa_positividade,
             distribuicao_por_setor=distribuicao,
             perfil_microbiologico=perfil,

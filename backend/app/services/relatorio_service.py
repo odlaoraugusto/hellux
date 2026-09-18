@@ -4,9 +4,14 @@ Service do módulo Relatórios (Sprint 10).
 Gera arquivos em memória (BytesIO) para exportação - nunca grava nada
 em disco no servidor. Cada método devolve os bytes prontos para serem
 enviados como resposta HTTP (StreamingResponse) pelo Router.
+
+Fase 1 (fluxo de Exame unificado): os relatórios de "Solicitações" e
+"Resultados Parciais" agora leem de `Exame` em vez de
+`Solicitacao`/`Cultura`.
 """
 import io
 import os
+import uuid
 from datetime import date, datetime
 
 from openpyxl import Workbook
@@ -26,9 +31,8 @@ from reportlab.platypus import (
 from sqlalchemy.orm import Session
 
 from app.repositories.paciente_repository import PacienteRepository
-from app.repositories.solicitacao_repository import SolicitacaoRepository
 from app.services.ccih_service import CCIHService
-from app.services.cultura_service import CulturaService
+from app.services.exame_service import ExameService
 
 CABECALHO_FILL = PatternFill(start_color="0F4C81", end_color="0F4C81", fill_type="solid")
 CABECALHO_FONT = Font(color="FFFFFF", bold=True)
@@ -49,9 +53,8 @@ class RelatorioService:
     def __init__(self, db: Session):
         self.db = db
         self.paciente_repository = PacienteRepository(db)
-        self.solicitacao_repository = SolicitacaoRepository(db)
         self.ccih_service = CCIHService(db)
-        self.cultura_service = CulturaService(db)
+        self.exame_service = ExameService(db)
 
     def gerar_excel_pacientes(self) -> bytes:
         wb = Workbook()
@@ -78,36 +81,34 @@ class RelatorioService:
         wb.save(buffer)
         return buffer.getvalue()
 
-    def gerar_excel_solicitacoes(self) -> bytes:
+    def gerar_excel_exames(self) -> bytes:
         wb = Workbook()
         ws = wb.active
-        ws.title = "Solicitações"
+        ws.title = "Exames"
         _estilizar_cabecalho(
             ws,
             [
                 "Paciente",
                 "Prontuário",
                 "Material",
-                "Origem",
-                "Prioridade",
+                "Setor",
+                "Tipo de Cultura",
                 "Status",
-                "Data da Solicitação",
                 "Data da Coleta",
             ],
         )
 
-        solicitacoes, _ = self.solicitacao_repository.search(skip=0, limit=10_000)
-        for s in solicitacoes:
+        exames, _ = self.exame_service.listar(status=None, page=1, page_size=10_000)
+        for e in exames:
             ws.append(
                 [
-                    s.paciente.nome if s.paciente else "",
-                    s.paciente.prontuario if s.paciente else "",
-                    s.material,
-                    s.origem or "",
-                    s.prioridade.value,
-                    s.status.value,
-                    s.data_solicitacao.strftime("%d/%m/%Y"),
-                    s.data_coleta.strftime("%d/%m/%Y") if s.data_coleta else "—",
+                    e.paciente.nome if e.paciente else "",
+                    e.paciente.prontuario if e.paciente else "",
+                    e.material.nome if e.material else "",
+                    e.setor.nome if e.setor else "",
+                    e.tipo_cultura.nome if e.tipo_cultura else "",
+                    e.status.value,
+                    e.data_coleta.strftime("%d/%m/%Y"),
                 ]
             )
 
@@ -115,7 +116,7 @@ class RelatorioService:
         wb.save(buffer)
         return buffer.getvalue()
 
-    def gerar_excel_culturas_parciais(self) -> bytes:
+    def gerar_excel_exames_parciais(self) -> bytes:
         wb = Workbook()
         ws = wb.active
         ws.title = "Resultados Parciais"
@@ -125,34 +126,34 @@ class RelatorioService:
                 "Paciente",
                 "Prontuário",
                 "Material",
-                "Grupo",
-                "Resultado Atual",
+                "Tipo de Cultura",
+                "Status Atual",
                 "Microrganismo(s)",
                 "Previsão de Liberação",
                 "Pendência",
             ],
         )
 
-        itens = self.cultura_service.resultados_parciais()
-        for cultura, pendencia in itens:
-            paciente = cultura.solicitacao.paciente if cultura.solicitacao else None
+        itens = self.exame_service.resultados_parciais()
+        for exame, pendencia in itens:
+            paciente = exame.paciente
             nomes_micro = (
-                ", ".join(cm.microrganismo.nome for cm in cultura.microrganismos)
-                if cultura.microrganismos
+                ", ".join(i.microrganismo.nome for i in exame.isolados)
+                if exame.isolados
                 else "—"
             )
             previsao = (
-                cultura.previsao_liberacao.strftime("%d/%m/%Y")
-                if cultura.previsao_liberacao
+                exame.previsao_liberacao.strftime("%d/%m/%Y")
+                if exame.previsao_liberacao
                 else "—"
             )
             ws.append(
                 [
                     paciente.nome if paciente else "",
                     paciente.prontuario if paciente else "",
-                    cultura.solicitacao.material if cultura.solicitacao else "",
-                    cultura.grupo.value,
-                    cultura.resultado.value,
+                    exame.material.nome if exame.material else "",
+                    exame.tipo_cultura.nome if exame.tipo_cultura else "",
+                    exame.status.value,
                     nomes_micro,
                     previsao,
                     pendencia,
@@ -167,13 +168,13 @@ class RelatorioService:
         self,
         data_inicio: date | None,
         data_fim: date | None,
-        origem: str | None = None,
+        setor_id: uuid.UUID | None = None,
         vigilancia: bool = False,
     ) -> bytes:
         indicadores = (
-            self.ccih_service.indicadores_vigilancia(data_inicio, data_fim, origem=origem)
+            self.ccih_service.indicadores_vigilancia(data_inicio, data_fim, setor_id=setor_id)
             if vigilancia
-            else self.ccih_service.indicadores(data_inicio, data_fim, origem=origem)
+            else self.ccih_service.indicadores(data_inicio, data_fim, setor_id=setor_id)
         )
         titulo = (
             "Hellux — Relatório CCIH (Cultura de Vigilância)"

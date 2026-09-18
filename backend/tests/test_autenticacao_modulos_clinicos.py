@@ -11,11 +11,10 @@ import pytest
 
 ENDPOINTS_PROTEGIDOS = [
     ("GET", "/api/pacientes"),
-    ("GET", "/api/solicitacoes"),
+    ("GET", "/api/exames"),
     ("GET", "/api/microrganismos"),
-    ("GET", "/api/microbiologia/culturas"),
     ("GET", "/api/antimicrobianos"),
-    ("GET", "/api/antibiogramas"),
+    ("GET", "/api/tipos-cultura"),
     ("GET", "/api/dashboard/resumo"),
     ("GET", "/api/ccih/indicadores"),
     ("GET", "/api/relatorios/pacientes.xlsx"),

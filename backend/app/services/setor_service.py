@@ -6,12 +6,14 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.tenant_context import get_current_tenant_id
 from app.repositories.setor_repository import SetorRepository
 from app.schemas.setor import SetorCreate, SetorUpdate
 
 
 class SetorService:
     def __init__(self, db: Session):
+        self.db = db
         self.repository = SetorRepository(db)
 
     def listar(self):
@@ -30,7 +32,9 @@ class SetorService:
                 "Já existe um setor cadastrado com este nome.",
                 errors=[f"nome '{dados.nome}' já está em uso."],
             )
-        return self.repository.create(dados.model_dump())
+        payload = dados.model_dump()
+        payload["tenant_id"] = get_current_tenant_id(self.db)
+        return self.repository.create(payload)
 
     def atualizar(self, setor_id: uuid.UUID, dados: SetorUpdate):
         setor = self.obter(setor_id)

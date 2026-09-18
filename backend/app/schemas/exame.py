@@ -1,27 +1,51 @@
 """
-Schemas do módulo Exames.
+Schemas do fluxo de Exame unificado (Fase 1).
 
-O módulo Exames é uma camada aditiva que compõe Solicitação + Cultura
-numa única operação, refletindo o fluxo real do laboratório (a coleta
-já aconteceu no sistema do hospital antes de qualquer coisa chegar ao
-Hellux). Ele não substitui os módulos Solicitações/Microbiologia,
-que continuam existindo intactos para o caso de agendamento antecipado.
-
-Não há um `ExameOut` próprio: a resposta de todos os endpoints reutiliza
-`CulturaOut` (ver app.schemas.cultura), já que uma Cultura com sua
-Solicitação aninhada É a representação completa de um "exame".
+`Exame` é agora a entidade "dona" de todo o fluxo (não compõe mais
+Solicitação + Cultura) - resolve o paciente por prontuário (cria se não
+existir) e grava diretamente o pedido + resultado + isolados +
+antibiograma numa única operação. Ver app/services/exame_service.py.
 """
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.cultura import GrupoCulturaEnum, ResultadoCulturaEnum
-from app.models.solicitacao import PrioridadeEnum
+from app.models.exame import MecanismoResistenciaEnum, ResultadoSIREnum, StatusExameEnum
+from app.schemas.antimicrobiano import AntimicrobianoOut
+from app.schemas.material import MaterialOut
+from app.schemas.microrganismo import MicrorganismoOut
+from app.schemas.paciente import PacienteOut
+from app.schemas.setor import SetorOut
+from app.schemas.tipo_cultura import TipoCulturaOut
+
+
+class ExameAntibiogramaIn(BaseModel):
+    antimicrobiano_id: uuid.UUID
+    resultado: ResultadoSIREnum
+
+
+class ExameIsoladoIn(BaseModel):
+    microrganismo_id: uuid.UUID
+    mecanismo_resistencia: MecanismoResistenciaEnum = MecanismoResistenciaEnum.NENHUM
+    nao_realizado_tecnico: bool = Field(
+        default=False,
+        description="Dispensa este isolado específico da exigência de "
+        "antibiograma (ex.: microrganismo sem protocolo BrCAST).",
+    )
+    motivo_dispensa_tsa: str | None = Field(default=None, max_length=500)
+    antibiograma: list[ExameAntibiogramaIn] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validar_motivo_dispensa(self) -> "ExameIsoladoIn":
+        if self.nao_realizado_tecnico and not self.motivo_dispensa_tsa:
+            raise ValueError(
+                "motivo_dispensa_tsa é obrigatório quando nao_realizado_tecnico=True."
+            )
+        return self
 
 
 class ExameCreate(BaseModel):
-    # Campos da Solicitação
     paciente_prontuario: str = Field(
         ...,
         min_length=1,
@@ -37,41 +61,91 @@ class ExameCreate(BaseModel):
         description="Usado apenas para cadastrar um paciente novo, quando o "
         "prontuário informado ainda não existe.",
     )
-    material: str = Field(..., min_length=2, max_length=100)
-    origem: str | None = Field(default=None, max_length=100)
-    prioridade: PrioridadeEnum = PrioridadeEnum.ROTINA
+    setor_id: uuid.UUID | None = None
+    tipo_cultura_id: uuid.UUID
+    material_id: uuid.UUID
     data_coleta: datetime | None = Field(
         default=None,
         description="Se não informada, usa o momento do cadastro (assume que a "
         "coleta acabou de acontecer).",
     )
-    observacoes_solicitacao: str | None = Field(default=None, max_length=1000)
-
-    # Campos da Cultura
-    grupo: GrupoCulturaEnum = GrupoCulturaEnum.CULTURA_GERAL
-    resultado: ResultadoCulturaEnum = ResultadoCulturaEnum.EM_ANALISE
-    microrganismo_ids: list[uuid.UUID] = Field(default_factory=list)
     previsao_liberacao: date | None = Field(
         default=None,
-        description="Se não informado, é calculada automaticamente a partir do "
+        description="Se não informado, é calculado automaticamente a partir do "
         "parâmetro 'prazo_solicitacao_dias'.",
     )
-    observacoes_cultura: str | None = Field(default=None, max_length=1000)
+    status: StatusExameEnum = StatusExameEnum.AGUARDANDO_TRIAGEM
+    identificacao_preliminar: str | None = Field(default=None, max_length=300)
+    observacoes: str | None = Field(default=None, max_length=1000)
+    isolados: list[ExameIsoladoIn] = Field(default_factory=list)
 
 
 class ExameUpdate(BaseModel):
     """Todos os campos opcionais - permite atualização parcial (PATCH)."""
 
-    # Campos da Solicitação
-    material: str | None = Field(default=None, min_length=2, max_length=100)
-    origem: str | None = Field(default=None, max_length=100)
-    prioridade: PrioridadeEnum | None = None
+    setor_id: uuid.UUID | None = None
+    tipo_cultura_id: uuid.UUID | None = None
+    material_id: uuid.UUID | None = None
     data_coleta: datetime | None = None
-    observacoes_solicitacao: str | None = Field(default=None, max_length=1000)
-
-    # Campos da Cultura
-    grupo: GrupoCulturaEnum | None = None
-    resultado: ResultadoCulturaEnum | None = None
-    microrganismo_ids: list[uuid.UUID] | None = None
     previsao_liberacao: date | None = None
-    observacoes_cultura: str | None = Field(default=None, max_length=1000)
+    status: StatusExameEnum | None = None
+    identificacao_preliminar: str | None = Field(default=None, max_length=300)
+    observacoes: str | None = Field(default=None, max_length=1000)
+    isolados: list[ExameIsoladoIn] | None = None
+
+
+class ExameAntibiogramaOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    antimicrobiano: AntimicrobianoOut
+    resultado: ResultadoSIREnum
+
+
+class ExameIsoladoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    microrganismo: MicrorganismoOut
+    mecanismo_resistencia: MecanismoResistenciaEnum
+    nao_realizado_tecnico: bool
+    motivo_dispensa_tsa: str | None
+    antibiograma: list[ExameAntibiogramaOut] = []
+
+
+class ExameOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    paciente_id: uuid.UUID
+    paciente: PacienteOut | None = None
+    setor_id: uuid.UUID | None
+    setor: SetorOut | None = None
+    tipo_cultura_id: uuid.UUID
+    tipo_cultura: TipoCulturaOut | None = None
+    material_id: uuid.UUID
+    material: MaterialOut | None = None
+    data_coleta: datetime
+    previsao_liberacao: date | None
+    status: StatusExameEnum
+    identificacao_preliminar: str | None
+    observacoes: str | None
+    isolados: list[ExameIsoladoOut] = []
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ExameParcialOut(ExameOut):
+    pendencia: str
+
+
+class ExameListOut(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[ExameOut]
+
+
+class ExameParcialListOut(BaseModel):
+    total: int
+    items: list[ExameParcialOut]

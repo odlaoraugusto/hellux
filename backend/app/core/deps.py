@@ -13,6 +13,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.security import decodificar_access_token
+from app.core.tenant_context import set_tenant_context
 from app.db.session import get_db
 from app.models.usuario import PerfilUsuarioEnum, Usuario
 
@@ -40,8 +41,36 @@ def get_current_user(
     except ValueError:
         raise CREDENCIAIS_INVALIDAS
 
+    # SUPER_ADMIN não pertence a tenant nenhum - a claim `tenant_id` vem
+    # None/ausente nesse caso (ver app/core/security.py::criar_access_token).
+    perfil_claim = payload.get("perfil")
+    eh_super_admin_claim = perfil_claim == PerfilUsuarioEnum.SUPER_ADMIN.value
+    tenant_id_raw = payload.get("tenant_id")
+
+    tenant_id: uuid.UUID | None = None
+    if tenant_id_raw:
+        try:
+            tenant_id = uuid.UUID(tenant_id_raw)
+        except ValueError:
+            raise CREDENCIAIS_INVALIDAS
+    elif not eh_super_admin_claim:
+        # Todo perfil que não é SUPER_ADMIN precisa ter tenant_id na claim.
+        raise CREDENCIAIS_INVALIDAS
+
+    # Precisa vir ANTES do db.get() - a tabela `usuarios` também tem Row
+    # Level Security (Fase 1), então sem o contexto de tenant (ou o modo
+    # SUPER_ADMIN) já definido a própria busca do usuário autenticado
+    # retornaria vazia.
+    set_tenant_context(db, tenant_id, is_super_admin=eh_super_admin_claim)
+
     usuario = db.get(Usuario, usuario_id)
     if not usuario or not usuario.is_active:
+        raise CREDENCIAIS_INVALIDAS
+
+    if eh_super_admin_claim:
+        if usuario.perfil != PerfilUsuarioEnum.SUPER_ADMIN or usuario.tenant_id is not None:
+            raise CREDENCIAIS_INVALIDAS
+    elif usuario.tenant_id != tenant_id:
         raise CREDENCIAIS_INVALIDAS
 
     return usuario

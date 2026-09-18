@@ -1,4 +1,14 @@
 -- ============================================================
+-- ATENÇÃO (Fase 1 - fundação multi-tenant): este arquivo é anterior à
+-- introdução de tenant_id/RLS "de verdade" (isolamento por tenant, ver
+-- alembic/versions/0014_multi_tenant_exame.py). Ele continua aqui só
+-- pelo propósito histórico original descrito abaixo (bloquear a API
+-- REST automática do Supabase) - NÃO reflete mais o schema atual (não
+-- cobre tenants/exames/tipos_cultura, e as tabelas antigas de
+-- solicitacoes/culturas/antibiogramas que ele lista já não existem mais).
+-- Não rodar isso como substituto da migration 0014.
+-- ============================================================
+--
 -- Hellux — Habilita Row Level Security em todas as tabelas
 --
 -- O backend conecta direto no Postgres via SQLAlchemy (não usa o

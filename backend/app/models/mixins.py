@@ -7,7 +7,7 @@ Segurança): soft delete, timestamps e auditoria básica de criação/edição.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.types import GUID
@@ -16,6 +16,23 @@ from app.db.types import GUID
 class UUIDPrimaryKeyMixin:
     id: Mapped[uuid.UUID] = mapped_column(
         GUID(), primary_key=True, default=uuid.uuid4
+    )
+
+
+class TenantScopedMixin:
+    """
+    Mixin de multi-tenancy (Fase 1 - Fundação multi-tenant).
+
+    Toda entidade "de negócio" (paciente, catálogo, exame, etc.) carrega o
+    `tenant_id` do hospital-cliente dono do registro. O isolamento real
+    entre tenants acontece via Row Level Security no Postgres (ver
+    `enable_rls.sql`/migration e `app/db/session.py`) - esta coluna é o
+    que a policy de RLS de cada tabela compara contra
+    `current_setting('app.current_tenant_id')`.
+    """
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        GUID(), ForeignKey("tenants.id"), nullable=False, index=True
     )
 
 

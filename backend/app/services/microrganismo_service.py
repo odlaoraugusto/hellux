@@ -6,12 +6,14 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.tenant_context import get_current_tenant_id
 from app.repositories.microrganismo_repository import MicrorganismoRepository
 from app.schemas.microrganismo import MicrorganismoCreate, MicrorganismoUpdate
 
 
 class MicrorganismoService:
     def __init__(self, db: Session):
+        self.db = db
         self.repository = MicrorganismoRepository(db)
 
     def listar(self, termo: str | None, page: int = 1, page_size: int = 20):
@@ -38,6 +40,7 @@ class MicrorganismoService:
 
         dados_dict = dados.model_dump()
         self._herdar_taxonomia_do_genero(dados, dados_dict)
+        dados_dict["tenant_id"] = get_current_tenant_id(self.db)
         return self.repository.create(dados_dict)
 
     def _herdar_taxonomia_do_genero(

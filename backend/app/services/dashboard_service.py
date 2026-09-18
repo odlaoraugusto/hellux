@@ -2,9 +2,14 @@
 Service do Dashboard (Sprint 8).
 
 Monta o resumo exibido na tela inicial a partir de consultas agregadas
-sobre Solicitações e Culturas. Os "alertas" seguem o espírito da "IA
-silenciosa" descrita no planejamento do projeto: o sistema entrega
-informação pronta, sem exigir que o usuário faça perguntas.
+sobre Exames. Os "alertas" seguem o espírito da "IA silenciosa" descrita
+no planejamento do projeto: o sistema entrega informação pronta, sem
+exigir que o usuário faça perguntas.
+
+Os nomes dos campos de saída (`culturas_hoje`, `liberados_hoje`, etc.)
+foram mantidos por compatibilidade mesmo após a Fase 1 (fluxo de Exame
+unificado) trocar a fonte de dados por baixo - o contrato da API não
+muda, só o que alimenta cada número.
 """
 from sqlalchemy.orm import Session
 
@@ -17,12 +22,12 @@ class DashboardService:
         self.repository = DashboardRepository(db)
 
     def resumo(self) -> ResumoDashboardOut:
-        culturas_hoje = self.repository.contar_culturas_criadas_hoje()
-        aguardando_atualizacao = self.repository.contar_solicitacoes_em_andamento()
-        prazo_vencido = self.repository.contar_solicitacoes_com_prazo_vencido()
-        liberados_hoje = self.repository.contar_culturas_liberadas_hoje()
+        exames_hoje = self.repository.contar_exames_criados_hoje()
+        aguardando_atualizacao = self.repository.contar_exames_em_andamento()
+        prazo_vencido = self.repository.contar_exames_com_prazo_vencido()
+        finalizados_hoje = self.repository.contar_exames_finalizados_hoje()
         top = self.repository.top_microrganismos()
-        aguardando_liberacao = self.repository.culturas_positivas_aguardando_liberacao()
+        aguardando_finalizacao = self.repository.exames_positivos_aguardando_finalizacao()
 
         top_microrganismos = [
             TopMicrorganismoOut(nome=nome, quantidade=quantidade) for nome, quantidade in top
@@ -35,19 +40,19 @@ class DashboardService:
                 AlertaOut(
                     tipo="prazo",
                     mensagem=(
-                        f"Existem {prazo_vencido} solicitação(ões) com prazo de "
+                        f"Existem {prazo_vencido} exame(s) com prazo de "
                         f"liberação vencido."
                     ),
                 )
             )
 
-        if aguardando_liberacao > 0:
+        if aguardando_finalizacao > 0:
             alertas.append(
                 AlertaOut(
                     tipo="info",
                     mensagem=(
-                        f"Há {aguardando_liberacao} cultura(s) positiva(s) aguardando "
-                        f"liberação técnica."
+                        f"Há {aguardando_finalizacao} exame(s) positivo(s) aguardando "
+                        f"finalização."
                     ),
                 )
             )
@@ -65,10 +70,10 @@ class DashboardService:
             )
 
         return ResumoDashboardOut(
-            culturas_hoje=culturas_hoje,
+            culturas_hoje=exames_hoje,
             aguardando_atualizacao=aguardando_atualizacao,
             prazo_vencido=prazo_vencido,
-            liberados_hoje=liberados_hoje,
+            liberados_hoje=finalizados_hoje,
             top_microrganismos=top_microrganismos,
             alertas=alertas,
         )

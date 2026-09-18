@@ -7,11 +7,16 @@ histórico microbiológico associado (relacionamento futuro com Solicitações).
 """
 from datetime import date
 
-from sqlalchemy import Date, Enum, String
+from sqlalchemy import Date, Enum, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
-from app.models.mixins import SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.mixins import (
+    SoftDeleteMixin,
+    TenantScopedMixin,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+)
 
 import enum
 
@@ -29,13 +34,14 @@ class StatusInternacaoEnum(str, enum.Enum):
     OBITO = "OBITO"
 
 
-class Paciente(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+class Paciente(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "pacientes"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "prontuario", name="uq_pacientes_tenant_prontuario"),
+    )
 
     nome: Mapped[str] = mapped_column(String(200), nullable=False)
-    prontuario: Mapped[str] = mapped_column(
-        String(50), nullable=False, unique=True, index=True
-    )
+    prontuario: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     data_nascimento: Mapped[date | None] = mapped_column(Date, nullable=True)
     sexo: Mapped[SexoEnum] = mapped_column(
         Enum(SexoEnum, name="sexo_enum"), default=SexoEnum.NAO_INFORMADO

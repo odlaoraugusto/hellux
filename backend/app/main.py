@@ -13,7 +13,6 @@ from app.core.exceptions import register_exception_handlers
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.routers import (
-    antibiograma_router,
     antimicrobiano_router,
     auth_router,
     ccih_router,
@@ -23,12 +22,12 @@ from app.routers import (
     health_router,
     log_auditoria_router,
     material_router,
-    microbiologia_router,
     microrganismo_router,
     paciente_router,
     relatorio_router,
     setor_router,
-    solicitacao_router,
+    tenant_router,
+    tipo_cultura_router,
     usuario_router,
 )
 
@@ -85,19 +84,18 @@ def verificar_configuracao_de_producao() -> None:
 # Módulos ativos
 app.include_router(health_router.router)
 app.include_router(paciente_router.router)
-app.include_router(solicitacao_router.router)
 app.include_router(microrganismo_router.router)
-app.include_router(microbiologia_router.router)
 app.include_router(exame_router.router)
 app.include_router(antimicrobiano_router.router)
-app.include_router(antibiograma_router.router)
 app.include_router(setor_router.router)
 app.include_router(material_router.router)
+app.include_router(tipo_cultura_router.router)
 app.include_router(dashboard_router.router)
 app.include_router(ccih_router.router)
 app.include_router(relatorio_router.router)
 app.include_router(auth_router.router)
 app.include_router(usuario_router.router)
+app.include_router(tenant_router.router)
 app.include_router(configuracao_router.router)
 app.include_router(log_auditoria_router.router)
 

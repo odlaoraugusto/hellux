@@ -8,11 +8,16 @@ ideia da "IA silenciosa" descrita no planejamento do projeto (dashboards
 mostrando ex.: "82% dos isolados foram bacilos Gram-negativos" sem
 cadastro manual extra).
 """
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
-from app.models.mixins import SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.mixins import (
+    SoftDeleteMixin,
+    TenantScopedMixin,
+    TimestampMixin,
+    UUIDPrimaryKeyMixin,
+)
 
 import enum
 
@@ -40,10 +45,13 @@ class MorfologiaEnum(str, enum.Enum):
     NAO_SE_APLICA = "NAO_SE_APLICA"
 
 
-class Microrganismo(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+class Microrganismo(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "microrganismos"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "nome", name="uq_microrganismos_tenant_nome"),
+    )
 
-    nome: Mapped[str] = mapped_column(String(150), nullable=False, unique=True, index=True)
+    nome: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     nome_cientifico: Mapped[str | None] = mapped_column(String(150), nullable=True)
     gram: Mapped[GramEnum] = mapped_column(
         Enum(GramEnum, name="gram_enum"), default=GramEnum.NAO_SE_APLICA

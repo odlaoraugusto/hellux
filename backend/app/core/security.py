@@ -28,7 +28,19 @@ def verificar_senha(senha_texto_puro: str, senha_hash: str) -> bool:
     return _pwd_context.verify(senha_texto_puro, senha_hash)
 
 
-def criar_access_token(usuario_id: uuid.UUID, perfil: str, login: str) -> str:
+def criar_access_token(
+    usuario_id: uuid.UUID, perfil: str, login: str, tenant_id: uuid.UUID | None
+) -> str:
+    """
+    A claim `tenant_id` (Fase 1 - fundação multi-tenant) é o que permite
+    `get_current_user` (app/core/deps.py) saber de qual tenant é a
+    request ANTES de sequer buscar o Usuario no banco - necessário porque
+    a tabela `usuarios` também tem Row Level Security: sem saber o tenant
+    de antemão, a própria busca do usuário autenticado já viria vazia.
+
+    `tenant_id=None` é o caso do perfil SUPER_ADMIN, que não pertence a
+    nenhum tenant (ver app/models/usuario.py).
+    """
     expira_em = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
@@ -36,6 +48,7 @@ def criar_access_token(usuario_id: uuid.UUID, perfil: str, login: str) -> str:
         "sub": str(usuario_id),
         "perfil": perfil,
         "login": login,
+        "tenant_id": str(tenant_id) if tenant_id else None,
         "exp": expira_em,
         "iat": datetime.now(timezone.utc),
     }

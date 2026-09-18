@@ -6,6 +6,7 @@ padrão JSON - eles devolvem o arquivo binário diretamente (Excel/PDF)
 para download, com os headers apropriados.
 """
 import io
+import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -39,17 +40,17 @@ def exportar_pacientes_excel(db: Session = Depends(get_db)):
     return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_pacientes.xlsx")
 
 
-@router.get("/solicitacoes.xlsx")
-def exportar_solicitacoes_excel(db: Session = Depends(get_db)):
+@router.get("/exames.xlsx")
+def exportar_exames_excel(db: Session = Depends(get_db)):
     service = RelatorioService(db)
-    conteudo = service.gerar_excel_solicitacoes()
-    return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_solicitacoes.xlsx")
+    conteudo = service.gerar_excel_exames()
+    return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_exames.xlsx")
 
 
-@router.get("/culturas-parciais.xlsx")
-def exportar_culturas_parciais_excel(db: Session = Depends(get_db)):
+@router.get("/exames-parciais.xlsx")
+def exportar_exames_parciais_excel(db: Session = Depends(get_db)):
     service = RelatorioService(db)
-    conteudo = service.gerar_excel_culturas_parciais()
+    conteudo = service.gerar_excel_exames_parciais()
     return _download(conteudo, XLSX_MEDIA_TYPE, "hellux_resultados_parciais.xlsx")
 
 
@@ -57,11 +58,11 @@ def exportar_culturas_parciais_excel(db: Session = Depends(get_db)):
 def exportar_ccih_pdf(
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
-    origem: str | None = Query(default=None, description="Filtra por setor/origem da solicitação"),
+    setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
     db: Session = Depends(get_db),
 ):
     service = RelatorioService(db)
-    conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, origem=origem)
+    conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, setor_id=setor_id)
     return _download(conteudo, PDF_MEDIA_TYPE, "hellux_relatorio_ccih.pdf")
 
 
@@ -69,9 +70,9 @@ def exportar_ccih_pdf(
 def exportar_ccih_vigilancia_pdf(
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
-    origem: str | None = Query(default=None, description="Filtra por setor/origem da solicitação"),
+    setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
     db: Session = Depends(get_db),
 ):
     service = RelatorioService(db)
-    conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, origem=origem, vigilancia=True)
+    conteudo = service.gerar_pdf_ccih(data_inicio, data_fim, setor_id=setor_id, vigilancia=True)
     return _download(conteudo, PDF_MEDIA_TYPE, "hellux_relatorio_ccih_vigilancia.pdf")

@@ -1,37 +1,11 @@
 """
 Testes do módulo Dashboard (Sprint 8).
+
+Fase 1 (fluxo de Exame unificado): reescrito sobre `/api/exames`. Os
+nomes dos campos de saída (`culturas_hoje`, `liberados_hoje`, etc.)
+continuam os mesmos por compatibilidade - só a fonte de dados mudou.
 """
-
-
-def _get_or_criar_microrganismo(authenticated_client, nome):
-    """
-    Cria o microrganismo, ou reaproveita o já existente se o nome já
-    tiver sido usado em outra chamada dentro do mesmo teste (a API
-    corretamente rejeita nomes duplicados com 422).
-    """
-    resposta = authenticated_client.post("/api/microrganismos", json={"nome": nome})
-    if resposta.status_code == 201:
-        return resposta.json()["data"]
-
-    existentes = authenticated_client.get("/api/microrganismos", params={"termo": nome}).json()["data"]["items"]
-    return next(m for m in existentes if m["nome"] == nome)
-
-
-def _fluxo_completo(authenticated_client, prontuario, resultado="POSITIVA", nome_micro="Micro X"):
-    paciente = authenticated_client.post(
-        "/api/pacientes", json={"nome": "Paciente Dash", "prontuario": prontuario}
-    ).json()["data"]
-    solicitacao = authenticated_client.post(
-        "/api/solicitacoes", json={"paciente_id": paciente["id"], "material": "Urina"}
-    ).json()["data"]
-
-    payload = {"solicitacao_id": solicitacao["id"], "resultado": resultado}
-    if resultado == "POSITIVA":
-        micro = _get_or_criar_microrganismo(authenticated_client, nome_micro)
-        payload["microrganismo_ids"] = [micro["id"]]
-
-    cultura = authenticated_client.post("/api/microbiologia/culturas", json=payload).json()["data"]
-    return paciente, solicitacao, cultura
+from tests.helpers import criar_exame, criar_microrganismo
 
 
 def test_resumo_dashboard_estrutura_basica(authenticated_client):
@@ -49,41 +23,52 @@ def test_resumo_dashboard_estrutura_basica(authenticated_client):
         assert campo in body
 
 
-def test_culturas_hoje_conta_culturas_criadas(authenticated_client):
-    _fluxo_completo(authenticated_client, "d1", resultado="NEGATIVA")
-    _fluxo_completo(authenticated_client, "d2", resultado="NEGATIVA")
+def test_culturas_hoje_conta_exames_criados(authenticated_client):
+    criar_exame(authenticated_client, prontuario="d1", status="NEGATIVO")
+    criar_exame(authenticated_client, prontuario="d2", status="NEGATIVO")
 
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     assert body["culturas_hoje"] == 2
 
 
-def test_aguardando_atualizacao_conta_solicitacoes_em_andamento(authenticated_client):
-    _fluxo_completo(authenticated_client, "d3", resultado="NEGATIVA")
+def test_aguardando_atualizacao_conta_exames_em_andamento(authenticated_client):
+    criar_exame(authenticated_client, prontuario="d3")  # status padrão: AGUARDANDO_TRIAGEM
 
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
-    # a solicitação criada continua em AGUARDANDO_COLETA (status não mexido)
     assert body["aguardando_atualizacao"] >= 1
 
 
-def test_liberados_hoje_conta_culturas_liberadas(authenticated_client):
-    _, _, cultura = _fluxo_completo(authenticated_client, "d4", resultado="NEGATIVA")
-    authenticated_client.post(f"/api/microbiologia/culturas/{cultura['id']}/liberar")
+def test_liberados_hoje_conta_exames_finalizados(authenticated_client):
+    criado = criar_exame(authenticated_client, prontuario="d4").json()["data"]
+    authenticated_client.put(f"/api/exames/{criado['id']}", json={"status": "NEGATIVO"})
 
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     assert body["liberados_hoje"] == 1
 
 
-def test_top_microrganismos_reflete_culturas_positivas(authenticated_client):
-    _fluxo_completo(authenticated_client, "d5", resultado="POSITIVA", nome_micro="Klebsiella pneumoniae")
-    _fluxo_completo(authenticated_client, "d6", resultado="POSITIVA", nome_micro="Klebsiella pneumoniae")
+def test_top_microrganismos_reflete_exames_positivos(authenticated_client):
+    microrganismo = criar_microrganismo(authenticated_client, nome="Klebsiella pneumoniae")
+    for prontuario in ("d5", "d6"):
+        criar_exame(
+            authenticated_client,
+            prontuario=prontuario,
+            status="POSITIVO_PARCIAL",
+            isolados=[{"microrganismo_id": microrganismo["id"]}],
+        )
 
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     nomes = [m["nome"] for m in body["top_microrganismos"]]
     assert "Klebsiella pneumoniae" in nomes
 
 
-def test_alerta_de_cultura_positiva_aguardando_liberacao(authenticated_client):
-    _fluxo_completo(authenticated_client, "d7", resultado="POSITIVA", nome_micro="Acinetobacter baumannii")
+def test_alerta_de_exame_positivo_aguardando_finalizacao(authenticated_client):
+    microrganismo = criar_microrganismo(authenticated_client, nome="Acinetobacter baumannii")
+    criar_exame(
+        authenticated_client,
+        prontuario="d7",
+        status="POSITIVO_PARCIAL",
+        isolados=[{"microrganismo_id": microrganismo["id"]}],
+    )
 
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     tipos = [a["tipo"] for a in body["alertas"]]

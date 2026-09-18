@@ -1,66 +1,50 @@
 """
-Service do módulo Exames.
+Service do fluxo de Exame unificado (Fase 1).
 
-Não reimplementa nenhuma regra de negócio de Solicitações/Microbiologia -
-apenas compõe `SolicitacaoService` e `CulturaService` para permitir
-cadastrar um exame microbiológico completo (solicitação já coletada +
-cultura) numa única operação, eliminando o retrabalho de 2 telas
-sequenciais do fluxo atual (ver app.services.solicitacao_service e
-app.services.cultura_service para as regras herdadas).
+Reescrito para gravar direto na entidade `Exame` (em vez de compor
+Solicitação + Cultura como antes) - mas herda o espírito do
+`ExameService` anterior: resolve o paciente por prontuário (cria se não
+existir) e reaproveita a regra de "só aceita isolados quando o status é
+positivo/positivo parcial", que antes vivia em `CulturaService`.
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
-from app.models.cultura import ResultadoCulturaEnum
-from app.models.solicitacao import StatusSolicitacaoEnum
-from app.schemas.cultura import CulturaCreate, CulturaUpdate
+from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.tenant_context import get_current_tenant_id
+from app.models.exame import STATUS_POSITIVO, Exame, StatusExameEnum
+from app.repositories.exame_repository import ExameRepository
+from app.repositories.parametro_sistema_repository import ParametroSistemaRepository
 from app.schemas.exame import ExameCreate, ExameUpdate
 from app.schemas.paciente import PacienteCreate
-from app.schemas.solicitacao import SolicitacaoCreate, SolicitacaoUpdate
-from app.services.cultura_service import CulturaService
 from app.services.paciente_service import PacienteService
-from app.services.solicitacao_service import SolicitacaoService
 
-# Campos de ExameCreate/ExameUpdate que pertencem à Solicitação e à
-# Cultura, respectivamente - usados em `atualizar` para roteá-los ao
-# service correto. Os nomes "observacoes_solicitacao"/"observacoes_cultura"
-# existem só para desambiguar as duas origens no schema compartilhado;
-# ambos mapeiam para o campo "observacoes" de cada entidade.
-_CAMPOS_SOLICITACAO = {
-    "material",
-    "origem",
-    "prioridade",
-    "data_coleta",
-    "observacoes_solicitacao",
-}
-_CAMPOS_CULTURA = {
-    "grupo",
-    "resultado",
-    "microrganismo_ids",
-    "previsao_liberacao",
-    "observacoes_cultura",
-}
+PRAZO_PADRAO_DIAS_FALLBACK = 2
 
 
 class ExameService:
     def __init__(self, db: Session):
-        self.solicitacao_service = SolicitacaoService(db)
-        self.cultura_service = CulturaService(db)
+        self.db = db
+        self.repository = ExameRepository(db)
         self.paciente_service = PacienteService(db)
+        self.parametro_repository = ParametroSistemaRepository(db)
 
     def listar(
         self,
-        resultado: ResultadoCulturaEnum | None,
+        status: StatusExameEnum | None,
         page: int = 1,
         page_size: int = 20,
     ):
-        return self.cultura_service.listar(None, resultado, page=page, page_size=page_size)
+        skip = (page - 1) * page_size
+        return self.repository.search(status=status, skip=skip, limit=page_size)
 
-    def obter(self, cultura_id: uuid.UUID):
-        return self.cultura_service.obter(cultura_id)
+    def obter(self, exame_id: uuid.UUID) -> Exame:
+        exame = self.repository.get_by_id(exame_id)
+        if not exame or not exame.is_active:
+            raise NotFoundError("Exame não encontrado.")
+        return exame
 
     def _resolver_paciente(self, prontuario: str, nome: str):
         """
@@ -76,59 +60,83 @@ class ExameService:
                 PacienteCreate(nome=nome, prontuario=prontuario)
             )
 
-    def criar(self, dados: ExameCreate):
-        paciente = self._resolver_paciente(dados.paciente_prontuario, dados.paciente_nome)
-
-        # 1-2. Cria a solicitação já como COLETADO - o coração da mudança:
-        # no fluxo real, a coleta já aconteceu antes de chegar ao Hellux.
-        solicitacao_dados = SolicitacaoCreate(
-            paciente_id=paciente.id,
-            material=dados.material,
-            origem=dados.origem,
-            prioridade=dados.prioridade,
-            status=StatusSolicitacaoEnum.COLETADO,
-            data_coleta=dados.data_coleta or datetime.now(timezone.utc),
-            observacoes=dados.observacoes_solicitacao,
-        )
-        solicitacao = self.solicitacao_service.criar(solicitacao_dados)
-
-        # 3-4. Cria a cultura vinculada, reaproveitando a validação de
-        # microrganismos-só-se-positiva e o cálculo de previsão automática.
-        cultura_dados = CulturaCreate(
-            solicitacao_id=solicitacao.id,
-            grupo=dados.grupo,
-            resultado=dados.resultado,
-            observacoes=dados.observacoes_cultura,
-            microrganismo_ids=dados.microrganismo_ids,
-            previsao_liberacao=dados.previsao_liberacao,
-        )
-        return self.cultura_service.criar(cultura_dados)
-
-    def atualizar(self, cultura_id: uuid.UUID, dados: ExameUpdate):
-        cultura = self.cultura_service.obter(cultura_id)
-
-        dados_dict = dados.model_dump(exclude_unset=True)
-
-        solicitacao_updates = {k: v for k, v in dados_dict.items() if k in _CAMPOS_SOLICITACAO}
-        if solicitacao_updates:
-            if "observacoes_solicitacao" in solicitacao_updates:
-                solicitacao_updates["observacoes"] = solicitacao_updates.pop(
-                    "observacoes_solicitacao"
-                )
-            self.solicitacao_service.atualizar(
-                cultura.solicitacao_id, SolicitacaoUpdate(**solicitacao_updates)
+    def _validar_isolados(self, status: StatusExameEnum, isolados: list) -> None:
+        if isolados and status not in STATUS_POSITIVO:
+            raise BusinessRuleError(
+                "Só é possível informar isolados quando o status é "
+                "POSITIVO_PARCIAL ou POSITIVO.",
+                errors=[f"status '{status.value}' não permite isolados."],
             )
 
-        cultura_updates = {k: v for k, v in dados_dict.items() if k in _CAMPOS_CULTURA}
-        if cultura_updates:
-            if "observacoes_cultura" in cultura_updates:
-                cultura_updates["observacoes"] = cultura_updates.pop("observacoes_cultura")
-            self.cultura_service.atualizar(cultura_id, CulturaUpdate(**cultura_updates))
+    def _calcular_previsao_padrao(self) -> date:
+        prazo_dias = self.parametro_repository.get_valor_int(
+            "prazo_solicitacao_dias", PRAZO_PADRAO_DIAS_FALLBACK
+        )
+        return date.today() + timedelta(days=prazo_dias)
 
-        return self.cultura_service.obter(cultura_id)
+    def criar(self, dados: ExameCreate) -> Exame:
+        paciente = self._resolver_paciente(dados.paciente_prontuario, dados.paciente_nome)
+        self._validar_isolados(dados.status, dados.isolados)
 
-    def liberar(self, cultura_id: uuid.UUID):
-        return self.cultura_service.liberar(cultura_id)
+        exame = self.repository.create(
+            {
+                "tenant_id": get_current_tenant_id(self.db),
+                "paciente_id": paciente.id,
+                "setor_id": dados.setor_id,
+                "tipo_cultura_id": dados.tipo_cultura_id,
+                "material_id": dados.material_id,
+                "data_coleta": dados.data_coleta or datetime.now(timezone.utc),
+                "previsao_liberacao": dados.previsao_liberacao
+                or self._calcular_previsao_padrao(),
+                "status": dados.status,
+                "identificacao_preliminar": dados.identificacao_preliminar,
+                "observacoes": dados.observacoes,
+            }
+        )
 
-    def remover(self, cultura_id: uuid.UUID):
-        self.cultura_service.remover(cultura_id)
+        if dados.isolados:
+            self.repository.definir_isolados(exame.id, dados.isolados)
+
+        return self.repository.get_by_id(exame.id)
+
+    def atualizar(self, exame_id: uuid.UUID, dados: ExameUpdate) -> Exame:
+        exame = self.obter(exame_id)
+
+        status_final = dados.status or exame.status
+        if dados.isolados is not None:
+            self._validar_isolados(status_final, dados.isolados)
+
+        dados_dict = dados.model_dump(exclude_unset=True, exclude={"isolados"})
+        self.repository.update(exame, dados_dict)
+
+        if dados.isolados is not None:
+            self.repository.definir_isolados(exame_id, dados.isolados)
+
+        return self.repository.get_by_id(exame_id)
+
+    def remover(self, exame_id: uuid.UUID) -> None:
+        exame = self.obter(exame_id)
+        self.repository.soft_delete(exame)
+
+    def calcular_pendencia(self, exame: Exame) -> str:
+        """
+        Explica, em uma frase curta, por que o exame ainda não foi
+        finalizado - usado no relatório de resultados parciais.
+        """
+        if exame.status == StatusExameEnum.AGUARDANDO_TRIAGEM:
+            return "Aguardando triagem inicial"
+
+        if exame.status in STATUS_POSITIVO:
+            if not exame.isolados:
+                return "Aguardando identificação do microrganismo"
+            if self.repository.isolados_sem_antibiograma(exame):
+                return "Aguardando antibiograma"
+            return "Pronto para finalização"
+
+        # NEGATIVO_PARCIAL não depende de isolado/antibiograma.
+        return "Pronto para finalização"
+
+    def resultados_parciais(self) -> list[tuple[Exame, str]]:
+        """Exames ainda não finalizados, cada um com sua pendência explicada."""
+        exames = self.repository.buscar_parciais()
+        return [(exame, self.calcular_pendencia(exame)) for exame in exames]

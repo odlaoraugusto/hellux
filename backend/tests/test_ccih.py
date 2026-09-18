@@ -1,58 +1,43 @@
 """
 Testes do módulo CCIH (Sprint 9).
+
+Fase 1 (fluxo de Exame unificado): reescrito sobre `/api/exames` no
+lugar de `/api/solicitacoes` + `/api/microbiologia/culturas` +
+`/api/antibiogramas` (removidos nesta mesma fase). O filtro que antes
+era por `origem` (string livre) agora é por `setor_id` (FK de verdade).
 """
 from datetime import date, timedelta
 
-
-def _get_or_criar_microrganismo(authenticated_client, nome):
-    """
-    Cria o microrganismo, ou reaproveita o já existente se o nome já
-    tiver sido usado em outra chamada dentro do mesmo teste (a API
-    corretamente rejeita nomes duplicados com 422).
-    """
-    resposta = authenticated_client.post("/api/microrganismos", json={"nome": nome})
-    if resposta.status_code == 201:
-        return resposta.json()["data"]
-
-    existentes = authenticated_client.get("/api/microrganismos", params={"termo": nome}).json()["data"]["items"]
-    return next(m for m in existentes if m["nome"] == nome)
+from tests.helpers import criar_antimicrobiano, criar_exame, criar_microrganismo, criar_setor
 
 
 def _fluxo_positivo_com_antibiograma(
-    authenticated_client, prontuario, origem="UTI", nome_micro="Klebsiella pneumoniae", resultado_sir="RESISTENTE"
+    client,
+    prontuario,
+    setor_nome="UTI",
+    nome_micro="Klebsiella pneumoniae",
+    resultado_sir="RESISTENTE",
 ):
-    paciente = authenticated_client.post(
-        "/api/pacientes", json={"nome": "Paciente CCIH", "prontuario": prontuario}
-    ).json()["data"]
-    solicitacao = authenticated_client.post(
-        "/api/solicitacoes",
-        json={"paciente_id": paciente["id"], "material": "Hemocultura", "origem": origem},
-    ).json()["data"]
-    microrganismo = _get_or_criar_microrganismo(authenticated_client, nome_micro)
-    cultura = authenticated_client.post(
-        "/api/microbiologia/culturas",
-        json={
-            "solicitacao_id": solicitacao["id"],
-            "resultado": "POSITIVA",
-            "microrganismo_ids": [microrganismo["id"]],
-        },
-    ).json()["data"]
-    isolado_id = cultura["microrganismos"][0]["id"]
+    setor = criar_setor(client, setor_nome)
+    microrganismo = criar_microrganismo(client, nome_micro)
+    antimicrobiano = criar_antimicrobiano(client, f"Antimicrobiano {prontuario}")
 
-    antimicrobiano = authenticated_client.post(
-        "/api/antimicrobianos", json={"nome": f"Antimicrobiano {prontuario}"}
+    exame = criar_exame(
+        client,
+        prontuario=prontuario,
+        setor_id=setor["id"],
+        status="POSITIVO",
+        isolados=[
+            {
+                "microrganismo_id": microrganismo["id"],
+                "antibiograma": [
+                    {"antimicrobiano_id": antimicrobiano["id"], "resultado": resultado_sir}
+                ],
+            }
+        ],
     ).json()["data"]
-    authenticated_client.post(
-        "/api/antibiogramas",
-        json={
-            "cultura_microrganismo_id": isolado_id,
-            "resultados": [
-                {"antimicrobiano_id": antimicrobiano["id"], "resultado": resultado_sir}
-            ],
-        },
-    )
 
-    return paciente, solicitacao, cultura
+    return exame, setor
 
 
 def test_indicadores_estrutura_basica(authenticated_client):
@@ -83,8 +68,8 @@ def test_total_solicitacoes_e_culturas_positivas(authenticated_client):
 
 
 def test_distribuicao_por_setor(authenticated_client):
-    _fluxo_positivo_com_antibiograma(authenticated_client, "c3", origem="UTI")
-    _fluxo_positivo_com_antibiograma(authenticated_client, "c4", origem="Enfermaria")
+    _fluxo_positivo_com_antibiograma(authenticated_client, "c3", setor_nome="UTI")
+    _fluxo_positivo_com_antibiograma(authenticated_client, "c4", setor_nome="Enfermaria")
 
     body = authenticated_client.get("/api/ccih/indicadores").json()["data"]
     setores = {item["setor"]: item["total_positivas"] for item in body["distribuicao_por_setor"]}
@@ -93,15 +78,15 @@ def test_distribuicao_por_setor(authenticated_client):
 
 
 def test_filtro_por_setor(authenticated_client):
-    _fluxo_positivo_com_antibiograma(
-        authenticated_client, "c10", origem="UTI", resultado_sir="RESISTENTE"
+    _, setor_uti = _fluxo_positivo_com_antibiograma(
+        authenticated_client, "c10", setor_nome="UTI", resultado_sir="RESISTENTE"
     )
     _fluxo_positivo_com_antibiograma(
-        authenticated_client, "c11", origem="Enfermaria", resultado_sir="SENSIVEL"
+        authenticated_client, "c11", setor_nome="Enfermaria", resultado_sir="SENSIVEL"
     )
 
     body = authenticated_client.get(
-        "/api/ccih/indicadores", params={"origem": "UTI"}
+        "/api/ccih/indicadores", params={"setor_id": setor_uti["id"]}
     ).json()["data"]
 
     assert body["filtro_setor"] == "UTI"
@@ -113,39 +98,21 @@ def test_filtro_por_setor(authenticated_client):
 
 
 def test_taxa_positividade_respeita_filtro_de_setor(authenticated_client):
-    # UTI: 1 cultura positiva (100%). Enfermaria: 1 cultura negativa (0%).
+    # UTI: 1 exame positivo (100%). Enfermaria: 1 exame negativo (0%).
     # Geral: 1 de 2 (50%) - confere que a taxa por setor não é só a geral
     # repetida, ela recalcula sobre o subconjunto filtrado.
-    paciente_uti = authenticated_client.post(
-        "/api/pacientes", json={"nome": "Paciente UTI", "prontuario": "c12"}
-    ).json()["data"]
-    solicitacao_uti = authenticated_client.post(
-        "/api/solicitacoes",
-        json={"paciente_id": paciente_uti["id"], "material": "Hemocultura", "origem": "UTI"},
-    ).json()["data"]
-    authenticated_client.post(
-        "/api/microbiologia/culturas",
-        json={"solicitacao_id": solicitacao_uti["id"], "resultado": "POSITIVA"},
-    )
+    setor_uti = criar_setor(authenticated_client, "UTI")
+    setor_enf = criar_setor(authenticated_client, "Enfermaria")
 
-    paciente_enf = authenticated_client.post(
-        "/api/pacientes", json={"nome": "Paciente Enfermaria", "prontuario": "c13"}
-    ).json()["data"]
-    solicitacao_enf = authenticated_client.post(
-        "/api/solicitacoes",
-        json={"paciente_id": paciente_enf["id"], "material": "Urina", "origem": "Enfermaria"},
-    ).json()["data"]
-    authenticated_client.post(
-        "/api/microbiologia/culturas",
-        json={"solicitacao_id": solicitacao_enf["id"], "resultado": "NEGATIVA"},
-    )
+    criar_exame(authenticated_client, prontuario="c12", setor_id=setor_uti["id"], status="POSITIVO")
+    criar_exame(authenticated_client, prontuario="c13", setor_id=setor_enf["id"], status="NEGATIVO")
 
     geral = authenticated_client.get("/api/ccih/indicadores").json()["data"]
     uti = authenticated_client.get(
-        "/api/ccih/indicadores", params={"origem": "UTI"}
+        "/api/ccih/indicadores", params={"setor_id": setor_uti["id"]}
     ).json()["data"]
     enfermaria = authenticated_client.get(
-        "/api/ccih/indicadores", params={"origem": "Enfermaria"}
+        "/api/ccih/indicadores", params={"setor_id": setor_enf["id"]}
     ).json()["data"]
 
     assert geral["taxa_positividade"] == 50.0
@@ -180,40 +147,28 @@ def test_taxa_resistencia(authenticated_client):
 
 
 def test_taxa_sensibilidade_mesmo_antimicrobiano(authenticated_client):
-    # Duas culturas testadas contra o "mesmo" antimicrobiano (mesmo prontuário
-    # usado como sufixo do nome em _fluxo_positivo_com_antibiograma) - uma
-    # resistente, outra sensível - para conferir que os dois percentuais são
-    # calculados sobre o total testado, não isoladamente.
-    paciente = authenticated_client.post(
-        "/api/pacientes", json={"nome": "Paciente CCIH Sensibilidade", "prontuario": "c9"}
-    ).json()["data"]
-    antimicrobiano = authenticated_client.post(
-        "/api/antimicrobianos", json={"nome": "Antimicrobiano c9"}
-    ).json()["data"]
+    # Dois exames testados contra o "mesmo" antimicrobiano (mesmo
+    # prontuário usado como sufixo do nome) - um resistente, outro
+    # sensível - pra conferir que os dois percentuais são calculados
+    # sobre o total testado, não isoladamente.
+    setor = criar_setor(authenticated_client, "UTI")
+    antimicrobiano = criar_antimicrobiano(authenticated_client, "Antimicrobiano c9")
+    microrganismo = criar_microrganismo(authenticated_client, "Klebsiella pneumoniae")
 
     for resultado_sir in ("RESISTENTE", "SENSIVEL"):
-        solicitacao = authenticated_client.post(
-            "/api/solicitacoes",
-            json={"paciente_id": paciente["id"], "material": "Hemocultura", "origem": "UTI"},
-        ).json()["data"]
-        microrganismo = _get_or_criar_microrganismo(authenticated_client, "Klebsiella pneumoniae")
-        cultura = authenticated_client.post(
-            "/api/microbiologia/culturas",
-            json={
-                "solicitacao_id": solicitacao["id"],
-                "resultado": "POSITIVA",
-                "microrganismo_ids": [microrganismo["id"]],
-            },
-        ).json()["data"]
-        isolado_id = cultura["microrganismos"][0]["id"]
-        authenticated_client.post(
-            "/api/antibiogramas",
-            json={
-                "cultura_microrganismo_id": isolado_id,
-                "resultados": [
-                    {"antimicrobiano_id": antimicrobiano["id"], "resultado": resultado_sir}
-                ],
-            },
+        criar_exame(
+            authenticated_client,
+            prontuario="c9",
+            setor_id=setor["id"],
+            status="POSITIVO",
+            isolados=[
+                {
+                    "microrganismo_id": microrganismo["id"],
+                    "antibiograma": [
+                        {"antimicrobiano_id": antimicrobiano["id"], "resultado": resultado_sir}
+                    ],
+                }
+            ],
         )
 
     body = authenticated_client.get("/api/ccih/indicadores").json()["data"]

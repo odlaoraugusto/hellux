@@ -1,187 +1,190 @@
 """
 Repository do módulo CCIH.
 
-Todas as consultas aqui são agregações sobre Solicitações, Culturas,
-Microrganismos e Antibiogramas já existentes - a CCIH não introduz
-nenhuma tabela nova, apenas uma nova forma de olhar para os dados que
-o laboratório já produz no dia a dia.
+Todas as consultas aqui são agregações sobre Exames, Microrganismos e
+Antimicrobianos já existentes - a CCIH não introduz nenhuma tabela nova,
+apenas uma nova forma de olhar para os dados que o laboratório já
+produz no dia a dia.
 
-O período é sempre calculado pela data da coleta (Solicitacao.data_coleta);
-quando ela não foi preenchida (registros antigos ou esquecidos), cai para
-a data da solicitação, para não sumir com dados dos relatórios.
+O período é sempre calculado pela data da coleta (`Exame.data_coleta`,
+sempre preenchida no fluxo unificado - não precisa mais de fallback).
+
+Fase 1 (fluxo de Exame unificado): reescrito sobre `Exame`/`ExameIsolado`/
+`ExameAntibiograma`. O antigo filtro fixo por `GrupoCulturaEnum.VIGILANCIA`
+vira uma comparação pelo NOME do `TipoCultura` (agora um catálogo livre
+por tenant, não mais um enum fixo) - a migration da Fase 1 semeia um
+`TipoCultura` chamado "VIGILANCIA" para o tenant migrado, preservando o
+comportamento atual; tenants novos que nomearem seu tipo de vigilância de
+forma diferente precisam usar exatamente esse nome por enquanto
+(limitação conhecida, documentada no relatório da Fase 1).
 """
 from datetime import date
 
-from sqlalchemy import Date, case, cast, func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.models.antibiograma import Antibiograma, AntibiogramaResultado, ResultadoSIREnum
 from app.models.antimicrobiano import Antimicrobiano
-from app.models.cultura import Cultura, CulturaMicrorganismo, GrupoCulturaEnum, ResultadoCulturaEnum
+from app.models.exame import (
+    STATUS_POSITIVO,
+    Exame,
+    ExameAntibiograma,
+    ExameIsolado,
+    ResultadoSIREnum,
+    StatusExameEnum,
+)
 from app.models.microrganismo import Microrganismo
-from app.models.solicitacao import Solicitacao
+from app.models.setor import Setor
+from app.models.tipo_cultura import TipoCultura
 
 SETOR_NAO_INFORMADO = "Não informado"
+NOME_TIPO_CULTURA_VIGILANCIA = "vigilancia"
 
-# Data de referência dos indicadores: a coleta, com fallback pra data da solicitação.
-DATA_REFERENCIA = func.coalesce(cast(Solicitacao.data_coleta, Date), Solicitacao.data_solicitacao)
+# `func.date(...)` funciona tanto no Postgres quanto no SQLite (usado
+# pela suíte de testes) - um `cast(col, Date)` puro não é confiável no
+# SQLite, que não tem afinidade de tipo DATE de verdade (cai em NUMERIC
+# e zera o valor). Mesmo padrão já usado em dashboard_repository.py.
+DATA_REFERENCIA = func.date(Exame.data_coleta)
 
 
 class CCIHRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def total_solicitacoes(
+    def _filtro_vigilancia(self, stmt, apenas_vigilancia: bool | None):
+        """
+        `apenas_vigilancia=True` -> só exames cujo tipo de cultura é
+        "vigilância"; `False` -> todos, EXCETO vigilância; `None` -> sem
+        filtro nenhum por tipo de cultura.
+        """
+        if apenas_vigilancia is None:
+            return stmt
+        stmt = stmt.join(TipoCultura, TipoCultura.id == Exame.tipo_cultura_id)
+        if apenas_vigilancia:
+            return stmt.where(func.lower(TipoCultura.nome) == NOME_TIPO_CULTURA_VIGILANCIA)
+        return stmt.where(func.lower(TipoCultura.nome) != NOME_TIPO_CULTURA_VIGILANCIA)
+
+    def total_exames(
         self,
         inicio: date,
         fim: date,
-        origem: str | None = None,
-        grupos: list[GrupoCulturaEnum] | None = None,
+        setor_id=None,
+        apenas_vigilancia: bool | None = None,
     ) -> int:
-        if grupos:
-            stmt = (
-                select(func.count(func.distinct(Solicitacao.id)))
-                .select_from(Solicitacao)
-                .join(Cultura, Cultura.solicitacao_id == Solicitacao.id)
-                .where(
-                    Solicitacao.is_active.is_(True),
-                    Cultura.is_active.is_(True),
-                    Cultura.grupo.in_(grupos),
-                    DATA_REFERENCIA >= inicio,
-                    DATA_REFERENCIA <= fim,
-                )
-            )
-        else:
-            stmt = select(func.count(Solicitacao.id)).where(
-                Solicitacao.is_active.is_(True),
-                DATA_REFERENCIA >= inicio,
-                DATA_REFERENCIA <= fim,
-            )
-        if origem:
-            stmt = stmt.where(Solicitacao.origem == origem)
+        stmt = select(func.count(Exame.id)).where(
+            Exame.is_active.is_(True),
+            DATA_REFERENCIA >= inicio,
+            DATA_REFERENCIA <= fim,
+        )
+        if setor_id:
+            stmt = stmt.where(Exame.setor_id == setor_id)
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
         return self.db.scalar(stmt) or 0
 
-    def total_culturas_por_resultado(
+    def total_exames_por_status(
         self,
         inicio: date,
         fim: date,
-        resultado: ResultadoCulturaEnum | None = None,
-        origem: str | None = None,
-        grupos: list[GrupoCulturaEnum] | None = None,
+        apenas_positivos: bool = False,
+        setor_id=None,
+        apenas_vigilancia: bool | None = None,
     ) -> int:
-        stmt = (
-            select(func.count(Cultura.id))
-            .select_from(Cultura)
-            .join(Solicitacao, Solicitacao.id == Cultura.solicitacao_id)
-            .where(
-                Cultura.is_active.is_(True),
-                Solicitacao.is_active.is_(True),
-                DATA_REFERENCIA >= inicio,
-                DATA_REFERENCIA <= fim,
-            )
+        stmt = select(func.count(Exame.id)).where(
+            Exame.is_active.is_(True),
+            DATA_REFERENCIA >= inicio,
+            DATA_REFERENCIA <= fim,
         )
-        if resultado:
-            stmt = stmt.where(Cultura.resultado == resultado)
+        if apenas_positivos:
+            stmt = stmt.where(Exame.status.in_(STATUS_POSITIVO))
         else:
-            stmt = stmt.where(Cultura.resultado != ResultadoCulturaEnum.EM_ANALISE)
-        if origem:
-            stmt = stmt.where(Solicitacao.origem == origem)
-        if grupos:
-            stmt = stmt.where(Cultura.grupo.in_(grupos))
+            stmt = stmt.where(Exame.status != StatusExameEnum.AGUARDANDO_TRIAGEM)
+        if setor_id:
+            stmt = stmt.where(Exame.setor_id == setor_id)
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
         return self.db.scalar(stmt) or 0
 
     def distribuicao_por_setor(
         self,
         inicio: date,
         fim: date,
-        origem: str | None = None,
-        grupos: list[GrupoCulturaEnum] | None = None,
+        setor_id=None,
+        apenas_vigilancia: bool | None = None,
     ) -> list[tuple[str, int]]:
-        origem_normalizada = func.coalesce(Solicitacao.origem, SETOR_NAO_INFORMADO)
+        nome_setor = func.coalesce(Setor.nome, SETOR_NAO_INFORMADO)
         stmt = (
-            select(origem_normalizada, func.count(Cultura.id))
-            .select_from(Cultura)
-            .join(Solicitacao, Solicitacao.id == Cultura.solicitacao_id)
+            select(nome_setor, func.count(Exame.id))
+            .select_from(Exame)
+            .outerjoin(Setor, Setor.id == Exame.setor_id)
             .where(
-                Cultura.is_active.is_(True),
-                Cultura.resultado == ResultadoCulturaEnum.POSITIVA,
+                Exame.is_active.is_(True),
+                Exame.status.in_(STATUS_POSITIVO),
                 DATA_REFERENCIA >= inicio,
                 DATA_REFERENCIA <= fim,
             )
-            .group_by(origem_normalizada)
-            .order_by(func.count(Cultura.id).desc())
+            .group_by(nome_setor)
+            .order_by(func.count(Exame.id).desc())
         )
-        if origem:
-            stmt = stmt.where(Solicitacao.origem == origem)
-        if grupos:
-            stmt = stmt.where(Cultura.grupo.in_(grupos))
+        if setor_id:
+            stmt = stmt.where(Exame.setor_id == setor_id)
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
         return list(self.db.execute(stmt).all())
 
     def perfil_microbiologico(
         self,
         inicio: date,
         fim: date,
-        origem: str | None = None,
-        grupos: list[GrupoCulturaEnum] | None = None,
+        setor_id=None,
+        apenas_vigilancia: bool | None = None,
     ) -> list[tuple[str, int]]:
         stmt = (
-            select(Microrganismo.nome, func.count(CulturaMicrorganismo.id))
-            .select_from(CulturaMicrorganismo)
-            .join(Microrganismo, Microrganismo.id == CulturaMicrorganismo.microrganismo_id)
-            .join(Cultura, Cultura.id == CulturaMicrorganismo.cultura_id)
-            .join(Solicitacao, Solicitacao.id == Cultura.solicitacao_id)
+            select(Microrganismo.nome, func.count(ExameIsolado.id))
+            .select_from(ExameIsolado)
+            .join(Microrganismo, Microrganismo.id == ExameIsolado.microrganismo_id)
+            .join(Exame, Exame.id == ExameIsolado.exame_id)
             .where(
-                Cultura.is_active.is_(True),
-                Cultura.resultado == ResultadoCulturaEnum.POSITIVA,
+                Exame.is_active.is_(True),
+                Exame.status.in_(STATUS_POSITIVO),
                 DATA_REFERENCIA >= inicio,
                 DATA_REFERENCIA <= fim,
             )
             .group_by(Microrganismo.nome)
-            .order_by(func.count(CulturaMicrorganismo.id).desc())
+            .order_by(func.count(ExameIsolado.id).desc())
         )
-        if origem:
-            stmt = stmt.where(Solicitacao.origem == origem)
-        if grupos:
-            stmt = stmt.where(Cultura.grupo.in_(grupos))
+        if setor_id:
+            stmt = stmt.where(Exame.setor_id == setor_id)
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
         return list(self.db.execute(stmt).all())
 
     def taxa_resistencia(
         self,
         inicio: date,
         fim: date,
-        origem: str | None = None,
-        grupos: list[GrupoCulturaEnum] | None = None,
+        setor_id=None,
+        apenas_vigilancia: bool | None = None,
     ) -> list[tuple[str, int, int, int]]:
-        total_testado = func.count(AntibiogramaResultado.id)
+        total_testado = func.count(ExameAntibiograma.id)
         total_resistente = func.sum(
-            case((AntibiogramaResultado.resultado == ResultadoSIREnum.RESISTENTE, 1), else_=0)
+            case((ExameAntibiograma.resultado == ResultadoSIREnum.RESISTENTE, 1), else_=0)
         )
         total_sensivel = func.sum(
-            case((AntibiogramaResultado.resultado == ResultadoSIREnum.SENSIVEL, 1), else_=0)
+            case((ExameAntibiograma.resultado == ResultadoSIREnum.SENSIVEL, 1), else_=0)
         )
         stmt = (
             select(Antimicrobiano.nome, total_testado, total_resistente, total_sensivel)
-            .select_from(AntibiogramaResultado)
-            .join(Antimicrobiano, Antimicrobiano.id == AntibiogramaResultado.antimicrobiano_id)
-            .join(Antibiograma, Antibiograma.id == AntibiogramaResultado.antibiograma_id)
-            .join(
-                CulturaMicrorganismo,
-                CulturaMicrorganismo.id == Antibiograma.cultura_microrganismo_id,
-            )
-            .join(Cultura, Cultura.id == CulturaMicrorganismo.cultura_id)
-            .join(Solicitacao, Solicitacao.id == Cultura.solicitacao_id)
+            .select_from(ExameAntibiograma)
+            .join(Antimicrobiano, Antimicrobiano.id == ExameAntibiograma.antimicrobiano_id)
+            .join(ExameIsolado, ExameIsolado.id == ExameAntibiograma.isolado_id)
+            .join(Exame, Exame.id == ExameIsolado.exame_id)
             .where(
-                Antibiograma.is_active.is_(True),
+                Exame.is_active.is_(True),
                 DATA_REFERENCIA >= inicio,
                 DATA_REFERENCIA <= fim,
             )
             .group_by(Antimicrobiano.nome)
             .order_by(total_testado.desc())
         )
-        if origem:
-            stmt = stmt.where(Solicitacao.origem == origem)
-        if grupos:
-            stmt = stmt.where(Cultura.grupo.in_(grupos))
+        if setor_id:
+            stmt = stmt.where(Exame.setor_id == setor_id)
+        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
         resultado = self.db.execute(stmt).all()
         return [
             (nome, testado, resistente or 0, sensivel or 0)

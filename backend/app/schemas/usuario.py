@@ -5,7 +5,7 @@ import re
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.usuario import PerfilUsuarioEnum
 
@@ -17,6 +17,12 @@ class UsuarioCreate(BaseModel):
     login: str = Field(..., min_length=3, max_length=50)
     senha: str = Field(..., min_length=8, max_length=100)
     perfil: PerfilUsuarioEnum = PerfilUsuarioEnum.VISUALIZADOR
+    tenant_id: uuid.UUID | None = Field(
+        default=None,
+        description="Só é lido quando quem está cadastrando é um SUPER_ADMIN "
+        "(que não tem tenant próprio) - para os demais perfis, o tenant é "
+        "sempre resolvido automaticamente a partir de quem está autenticado.",
+    )
 
     @field_validator("login")
     @classmethod
@@ -26,6 +32,12 @@ class UsuarioCreate(BaseModel):
                 "Login só pode ter letras, números, ponto, hífen e underscore (sem espaços)."
             )
         return v
+
+    @model_validator(mode="after")
+    def _super_admin_nunca_tem_tenant(self) -> "UsuarioCreate":
+        if self.perfil == PerfilUsuarioEnum.SUPER_ADMIN and self.tenant_id is not None:
+            raise ValueError("Um usuário SUPER_ADMIN não pode ter tenant_id.")
+        return self
 
 
 class UsuarioUpdate(BaseModel):
@@ -38,6 +50,7 @@ class UsuarioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    tenant_id: uuid.UUID | None
     nome: str
     login: str
     perfil: PerfilUsuarioEnum

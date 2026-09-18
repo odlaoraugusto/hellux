@@ -10,12 +10,14 @@ import uuid
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.tenant_context import get_current_tenant_id
 from app.repositories.paciente_repository import PacienteRepository
 from app.schemas.paciente import PacienteCreate, PacienteUpdate
 
 
 class PacienteService:
     def __init__(self, db: Session):
+        self.db = db
         self.repository = PacienteRepository(db)
 
     def listar(self, termo: str | None, page: int = 1, page_size: int = 20):
@@ -42,7 +44,9 @@ class PacienteService:
                 "Já existe um paciente cadastrado com este número de prontuário.",
                 errors=[f"prontuario '{dados.prontuario}' já está em uso."],
             )
-        return self.repository.create(dados.model_dump())
+        payload = dados.model_dump()
+        payload["tenant_id"] = get_current_tenant_id(self.db)
+        return self.repository.create(payload)
 
     def atualizar(self, paciente_id: uuid.UUID, dados: PacienteUpdate):
         paciente = self.obter(paciente_id)

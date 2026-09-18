@@ -1,6 +1,7 @@
 """
 Router do módulo CCIH (Sprint 9).
 """
+import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -18,12 +19,12 @@ router = APIRouter(prefix="/api/ccih", tags=["CCIH"], dependencies=[Depends(get_
 def obter_indicadores_ccih(
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
-    origem: str | None = Query(default=None, description="Filtra por setor/origem da solicitação"),
+    setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
     db: Session = Depends(get_db),
 ):
-    """Indicadores gerais - todas as culturas, exceto as de vigilância."""
+    """Indicadores gerais - todos os exames, exceto os de vigilância."""
     service = CCIHService(db)
-    indicadores = service.indicadores(data_inicio, data_fim, origem=origem)
+    indicadores = service.indicadores(data_inicio, data_fim, setor_id=setor_id)
     return success_response(
         indicadores.model_dump(mode="json"), message="Indicadores da CCIH calculados com sucesso."
     )
@@ -33,12 +34,12 @@ def obter_indicadores_ccih(
 def obter_indicadores_ccih_vigilancia(
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
-    origem: str | None = Query(default=None, description="Filtra por setor/origem da solicitação"),
+    setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
     db: Session = Depends(get_db),
 ):
-    """Indicadores dedicados às culturas de vigilância (rastreio/colonização)."""
+    """Indicadores dedicados aos exames de vigilância (rastreio/colonização)."""
     service = CCIHService(db)
-    indicadores = service.indicadores_vigilancia(data_inicio, data_fim, origem=origem)
+    indicadores = service.indicadores_vigilancia(data_inicio, data_fim, setor_id=setor_id)
     return success_response(
         indicadores.model_dump(mode="json"),
         message="Indicadores de vigilância calculados com sucesso.",

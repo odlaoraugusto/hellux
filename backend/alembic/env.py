@@ -19,7 +19,16 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Só cai pra DATABASE_URL do .env se quem chamou (CLI normal via
+# alembic.ini, que tem "sqlalchemy.url =" vazio de propósito) não tiver
+# passado uma URL explícita - é o que permite testes automatizados
+# (ver tests/test_rls_isolamento.py) apontar pra um Postgres descartável
+# via `Config.set_main_option("sqlalchemy.url", ...)` sem risco de cair
+# no banco real por engano. NUNCA sobrescrever incondicionalmente aqui de
+# novo - foi exatamente esse comportamento que já aplicou uma migration
+# no banco de demonstração ao vivo por acidente numa sessão anterior.
+if not config.get_main_option("sqlalchemy.url"):
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 

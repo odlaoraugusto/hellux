@@ -23,18 +23,18 @@ logger = logging.getLogger("hellux.auditoria")
 METODOS_AUDITADOS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
-def _extrair_usuario_do_token(request: Request) -> tuple[str | None, str | None]:
+def _extrair_usuario_do_token(request: Request) -> tuple[str | None, str | None, str | None]:
     """Decodifica o JWT (se presente) sem consultar o banco - só para o log."""
     auth_header = request.headers.get("authorization")
     if not auth_header or not auth_header.lower().startswith("bearer "):
-        return None, None
+        return None, None, None
 
     token = auth_header.split(" ", 1)[1]
     payload = decodificar_access_token(token)
     if not payload:
-        return None, None
+        return None, None, None
 
-    return payload.get("sub"), payload.get("login")
+    return payload.get("sub"), payload.get("login"), payload.get("tenant_id")
 
 
 class AuditoriaMiddleware(BaseHTTPMiddleware):
@@ -47,12 +47,13 @@ class AuditoriaMiddleware(BaseHTTPMiddleware):
         return response
 
     def _registrar_log(self, request: Request, response) -> None:
-        usuario_id, usuario_login = _extrair_usuario_do_token(request)
+        usuario_id, usuario_login, tenant_id = _extrair_usuario_do_token(request)
         ip_origem = request.client.host if request.client else None
 
         db = db_session.SessionLocal()
         try:
             log = LogAuditoria(
+                tenant_id=tenant_id,
                 usuario_id=usuario_id,
                 usuario_login=usuario_login,
                 metodo=request.method,
