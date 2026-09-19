@@ -4,6 +4,11 @@ Fonte oficial: `manual/Hellux_Manual_de_Identidade_Visual.docx` (v1.0, Julho de 
 Este arquivo consolida as regras que o frontend (`frontend/src/styles/tokens.css`)
 segue à risca. Sempre que o manual evoluir, atualizar os dois lugares juntos.
 
+**v1.1 (Setembro de 2026):** redesign visual aprovado pelo usuário após consulta
+a designer UI/UX e especialista de domínio (CCIH) — ver seção "Raio e sombra"
+abaixo para a mudança de filosofia (bordas sutis como padrão) e a nota sobre a
+exceção do tema escuro no Login.
+
 ## Paleta de cores
 
 | Uso | Cor | Hex |
@@ -27,6 +32,38 @@ em `frontend/src/styles/global.css` através da variável `--mg-font-family`.
 Hierarquia recomendada pelo manual: Bold para títulos e KPIs, SemiBold para
 subtítulos/botões, Medium para rótulos de campo/menu/badges, Regular para
 texto corrido, Light para legendas pontuais.
+
+## Raio e sombra (v1.1)
+
+Régua de raio reduzida (visual mais "clean", menos cartão redondo) e
+mudança de filosofia: **borda sutil é o padrão, sombra é reservada para
+elementos elevados** (modais, painéis flutuantes, o card de vidro do
+Login) — não para todo card do sistema como na v1.0.
+
+| Token | v1.0 | v1.1 |
+|---|---|---|
+| `--mg-radius-sm` | 6px | 4px |
+| `--mg-radius-md` | 10px | 8px |
+| `--mg-radius-lg` | 16px | 12px |
+| `--mg-radius-xl` | — | 20px (novo, exclusivo do card de vidro do Login) |
+
+- `.mg-card` (usado em todo o sistema: Dashboard, Exames, Pacientes,
+  Configurações, Relatórios, CCIH) passou a ter `border: 1px solid
+  var(--mg-cinza-200)` (`--mg-border-sutil`) em vez de
+  `box-shadow: var(--mg-shadow-card)`.
+- `.mg-card-elevado` (nova classe) mantém a sombra (`--mg-shadow-elevado`,
+  mais pronunciada que a antiga `--mg-shadow-card`) para os casos em que
+  o elemento precisa se destacar visualmente do fundo.
+- `--mg-shadow-card` continua definida (compatibilidade), mas não é mais
+  o padrão de nenhum componente do design system.
+
+**Exceção do Login:** é o único lugar do produto com tema escuro — fundo
+full-bleed com imagem 3D de bactéria/célula (`frontend/public/login-bg.jpg`)
+e um card de vidro (`glassmorphism`, `--mg-radius-xl`, `--mg-shadow-elevado`,
+fundo `rgba(15, 76, 129, 0.28)` + `backdrop-filter: blur`) centralizado.
+Essa variante é isolada via CSS escopado à classe `.mg-login-card` — não é
+uma mudança de paleta global, o resto do sistema continua no tema claro
+oficial.
 
 ## Iconografia
 
@@ -89,9 +126,13 @@ Onde a marca aparece hoje no sistema:
 
 ## Aplicação em produto
 
-- **Login:** split-screen — painel de marca à esquerda (cor primária,
-  símbolo + wordmark, headline institucional, testemunho) e formulário à
-  direita, fundo claro (ver `design/mockups/login-screen.png`).
+- **Login (v1.1):** fundo full-bleed com imagem 3D de bactéria/célula em
+  tom petróleo/teal escuro e card de vidro (glassmorphism) centralizado na
+  área esquerda-centro da tela, com símbolo + wordmark (`HelluxIcon
+  variante="negativo"`) e tagline curta. Único lugar do produto em tema
+  escuro — ver seção "Raio e sombra" acima. Em telas pequenas (≤600px), a
+  foto é substituída por um gradiente CSS nos mesmos tons (evita corte
+  ruim da imagem em mobile).
 - **Dashboard/navegação:** sidebar fixa na cor primária com os módulos do
   sistema, cabeçalho branco com saudação/data e avatar, área de conteúdo
   em fundo claro com cards brancos (ver `design/mockups/dashboard-structure.png`).

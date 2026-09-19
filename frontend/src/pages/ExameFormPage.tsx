@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import { atualizarExame, criarExame, obterExame } from "../services/exameService";
 import { listarSetores } from "../services/setorService";
 import { listarTiposCultura } from "../services/tipoCulturaService";
@@ -359,7 +360,7 @@ export default function ExameFormPage() {
     >
       <div className="mg-card" style={{ maxWidth: 900 }}>
         {carregando ? (
-          <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>
+          <CarregandoBarras />
         ) : (
           <form onSubmit={handleSubmit}>
             {erro && (

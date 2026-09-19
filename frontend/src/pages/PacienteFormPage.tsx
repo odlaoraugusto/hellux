@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import {
   atualizarPaciente,
   criarPaciente,
@@ -85,7 +86,7 @@ export default function PacienteFormPage() {
     >
       <div className="mg-card" style={{ maxWidth: 720 }}>
         {carregando ? (
-          <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>
+          <CarregandoBarras />
         ) : (
           <form onSubmit={handleSubmit}>
             {erro && (

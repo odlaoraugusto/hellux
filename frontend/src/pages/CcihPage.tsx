@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import { obterIndicadoresCCIH, obterIndicadoresCCIHVigilancia } from "../services/ccihService";
 import { listarSetores } from "../services/setorService";
 import { IndicadoresCCIH } from "../types/ccih";
@@ -122,7 +123,7 @@ export default function CcihPage() {
       </div>
 
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
-      {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+      {!erro && carregando && <CarregandoBarras />}
 
       {!erro && !carregando && indicadores && (
         <>

@@ -62,7 +62,14 @@ a {
 .mg-card {
   background: var(--mg-branco);
   border-radius: var(--mg-radius-md);
-  box-shadow: var(--mg-shadow-card);
+  border: var(--mg-border-sutil);
+  padding: 20px;
+}
+
+.mg-card-elevado {
+  background: var(--mg-branco);
+  border-radius: var(--mg-radius-lg);
+  box-shadow: var(--mg-shadow-elevado);
   padding: 20px;
 }
 
@@ -193,62 +200,141 @@ table.mg-table td {
   border-color: var(--mg-primaria);
 }
 
-/* Tela de login (split-screen) - Manual de Identidade Visual v1.0, seção 8.1 */
+.mg-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  cursor: pointer;
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.carregando-barras {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.carregando-barras__pista {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+.carregando-barras--pequeno .carregando-barras__pista {
+  height: 14px;
+}
+.carregando-barras__barra {
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--mg-primaria);
+  animation: onda-barra 1s ease-in-out infinite;
+  transform-origin: center;
+}
+.carregando-barras--pequeno .carregando-barras__barra {
+  width: 3px;
+}
+.carregando-barras__barra:nth-child(1) {
+  animation-delay: -0.36s;
+}
+.carregando-barras__barra:nth-child(2) {
+  animation-delay: -0.24s;
+}
+.carregando-barras__barra:nth-child(3) {
+  animation-delay: -0.12s;
+}
+.carregando-barras__barra:nth-child(4) {
+  animation-delay: 0s;
+}
+.carregando-barras__rotulo {
+  font-size: 13px;
+  color: var(--mg-cinza-600);
+}
+@keyframes onda-barra {
+  0%,
+  40%,
+  100% {
+    transform: scaleY(0.35);
+    opacity: 0.55;
+  }
+  20% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carregando-barras__barra {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/*
+ * Tela de login - v1.1: fundo full-bleed (imagem 3D de bactéria/célula em
+ * tom petróleo) com card de vidro (glassmorphism) centralizado na área
+ * esquerda-centro. Único lugar do produto com tema escuro - isolado via
+ * seletores escopados `.mg-login-card` para não vazar pro resto do
+ * sistema (que segue claro/bordas sutis).
+ */
 .mg-login-container {
   min-height: 100vh;
   display: flex;
-}
-
-.mg-login-painel-marca {
-  flex: 1 1 50%;
-  background: var(--mg-primaria);
-  color: var(--mg-branco);
-  padding: 56px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.mg-login-painel-marca::after {
-  content: "";
-  position: absolute;
-  right: -120px;
-  bottom: -120px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%);
-  pointer-events: none;
-}
-
-.mg-login-painel-marca > * {
-  position: relative;
-  z-index: 1;
-}
-
-.mg-login-painel-form {
-  flex: 1 1 50%;
-  background: var(--mg-fundo);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 32px;
+  padding: 32px 8vw;
+  background-image: url("/login-bg.jpg");
+  background-size: cover;
+  background-position: center;
 }
 
-@media (max-width: 900px) {
+.mg-login-card {
+  background: rgba(15, 76, 129, 0.28);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--mg-radius-xl);
+  box-shadow: var(--mg-shadow-elevado);
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.mg-login-card .mg-field label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mg-login-card .mg-field input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.mg-login-card .mg-field input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.mg-login-card .mg-field input:focus {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 600px) {
   .mg-login-container {
-    flex-direction: column;
-  }
-
-  .mg-login-painel-marca {
-    flex: none;
-    padding: 32px 24px;
-  }
-
-  .mg-login-painel-form {
-    flex: none;
-    padding: 32px 20px 48px 20px;
+    background-image: none;
+    background: linear-gradient(160deg, #0a1420, #123344);
+    padding: 24px 20px;
+    justify-content: center;
   }
 }

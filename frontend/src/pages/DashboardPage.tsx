@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
+import StatCard from "../components/StatCard";
+import RankedListCard from "../components/RankedListCard";
+import SectorGroupCard from "../components/SectorGroupCard";
 import { obterResumoDashboard } from "../services/dashboardService";
 import { ResumoDashboard } from "../types/dashboard";
 
@@ -45,10 +49,11 @@ export default function DashboardPage() {
     <MainLayout titulo="Visão geral do laboratório">
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
 
-      {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+      {!erro && carregando && <CarregandoBarras />}
 
       {!erro && !carregando && resumo && (
         <>
+          <h3>Hoje</h3>
           <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
             <KpiCard titulo="Culturas Hoje" valor={resumo.culturas_hoje} />
             <KpiCard
@@ -68,7 +73,36 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <h3>Este mês</h3>
+          <div style={{ display: "flex", gap: 16 }}>
+            <StatCard
+              titulo="Total de culturas no mês"
+              valor={resumo.total_exames_mes}
+              estatisticaSecundaria={{
+                rotulo: "Taxa de positividade",
+                valor: `${resumo.taxa_positividade_mes}%`,
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+            <RankedListCard titulo="Por tipo de cultura" itens={resumo.por_tipo_cultura} />
+            <RankedListCard titulo="Por material" itens={resumo.por_material} />
+          </div>
+
+          <h3 style={{ marginTop: 24 }}>Por setor</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+            {resumo.por_setor.map((s) => (
+              <SectorGroupCard key={s.nome} nome={s.nome} quantidade={s.quantidade} />
+            ))}
+            {resumo.por_setor.length === 0 && (
+              <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+                Nenhum exame registrado este mês ainda.
+              </p>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 24 }}>
             <div className="mg-card" style={{ flex: 1, minWidth: 280 }}>
               <h3 style={{ marginTop: 0 }}>Top Microrganismos (últimos 30 dias)</h3>
               {resumo.top_microrganismos.length === 0 ? (

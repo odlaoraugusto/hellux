@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import StatusExameBadge from "../components/StatusExameBadge";
 import { atualizarExame, listarExames, removerExame } from "../services/exameService";
 import { extrairMensagemErro } from "../services/api";
@@ -113,7 +114,7 @@ export default function ExamesListPage() {
 
       <div className="mg-card">
         {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
-        {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+        {!erro && carregando && <CarregandoBarras />}
 
         {!erro && !carregando && exames.length === 0 && (
           <p style={{ color: "var(--mg-cinza-600)" }}>

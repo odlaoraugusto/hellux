@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import StatusBadge from "../components/StatusBadge";
 import { useDebounce } from "../hooks/useDebounce";
 import { listarPacientes, removerPaciente } from "../services/pacienteService";
@@ -75,7 +76,7 @@ export default function PacientesListPage() {
           <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>
         )}
 
-        {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+        {!erro && carregando && <CarregandoBarras />}
 
         {!erro && !carregando && pacientes.length === 0 && (
           <p style={{ color: "var(--mg-cinza-600)" }}>
