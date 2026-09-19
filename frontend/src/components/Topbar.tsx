@@ -1,30 +1,31 @@
-import { Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 interface TopbarProps {
   titulo: string;
   subtitulo?: string;
+  onAbrirMenu?: () => void;
 }
 
-export default function Topbar({ titulo, subtitulo }: TopbarProps) {
+export default function Topbar({ titulo, subtitulo, onAbrirMenu }: TopbarProps) {
   const { usuario, logout } = useAuth();
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const iniciais = usuario?.nome?.trim()?.charAt(0)?.toUpperCase() ?? "U";
 
   return (
-    <header
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "16px 32px",
-        background: "var(--mg-branco)",
-        borderBottom: "1px solid var(--mg-cinza-200)",
-      }}
-    >
-      <div>
-        <h2 style={{ fontSize: 18, margin: 0 }}>
+    <header className="mg-topbar">
+      <button
+        type="button"
+        className="mg-topbar-menu-btn"
+        onClick={onAbrirMenu}
+        aria-label="Abrir menu"
+      >
+        <Menu size={22} strokeWidth={2} />
+      </button>
+
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <h2 style={{ fontSize: 18, margin: 0, overflowWrap: "anywhere" }}>
           {subtitulo ?? `${saudacao}${usuario ? `, ${usuario.nome.split(" ")[0]}` : ""}! 👋`}
         </h2>
         <p style={{ margin: "2px 0 0 0", fontSize: 13, color: "var(--mg-cinza-600)" }}>
@@ -33,7 +34,7 @@ export default function Topbar({ titulo, subtitulo }: TopbarProps) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ position: "relative" }}>
+        <div className="mg-topbar-search" style={{ position: "relative" }}>
           <Search
             size={16}
             strokeWidth={2}
@@ -61,7 +62,9 @@ export default function Topbar({ titulo, subtitulo }: TopbarProps) {
         </div>
 
         {usuario && (
-          <span style={{ fontSize: 13, color: "var(--mg-cinza-600)" }}>{usuario.perfil}</span>
+          <span className="mg-topbar-perfil" style={{ fontSize: 13, color: "var(--mg-cinza-600)" }}>
+            {usuario.perfil}
+          </span>
         )}
         <div
           style={{

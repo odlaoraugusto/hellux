@@ -71,6 +71,93 @@ a {
   flex: 1;
 }
 
+/*
+ * Sidebar responsiva - v1.2. No desktop fica sempre visível em fluxo
+ * normal (sem transform nenhum). Abaixo de 900px vira um drawer fixo
+ * fora da tela por padrão, controlado pela classe `--aberta` (acionada
+ * pelo botão de menu do Topbar) + um overlay que fecha ao clicar fora.
+ */
+.mg-sidebar {
+  width: 240px;
+  background: var(--mg-sidebar-bg);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  flex-shrink: 0;
+}
+
+.mg-sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mg-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    height: 100vh;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--mg-shadow-elevado);
+    overflow-y: auto;
+  }
+
+  .mg-sidebar--aberta {
+    transform: translateX(0);
+  }
+
+  .mg-sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 30;
+  }
+}
+
+.mg-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--mg-branco);
+  border-bottom: 1px solid var(--mg-cinza-200);
+  gap: 12px;
+}
+
+.mg-topbar-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--mg-texto);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .mg-topbar-menu-btn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 700px) {
+  .mg-content {
+    padding: 16px;
+  }
+
+  .mg-topbar {
+    padding: 12px 16px;
+  }
+
+  .mg-topbar-search,
+  .mg-topbar-perfil {
+    display: none;
+  }
+}
+
 .mg-card {
   background: var(--mg-branco);
   border-radius: var(--mg-radius-md);
@@ -346,10 +433,25 @@ table.mg-table td {
 }
 
 @media (max-width: 600px) {
+  /*
+   * Correção: a versão anterior ancorava o card só por `bottom` dentro de
+   * um container `position: relative` - se o conteúdo do card fosse mais
+   * alto que a tela (comum em telefones baixos ou com o teclado aberto),
+   * o topo do card ia parar em coordenada negativa, fora da área
+   * navegável (sem como rolar até lá). Trocado por flex + `align-items:
+   * flex-end` - o container cresce com o conteúdo (`min-height`, não
+   * altura fixa) e a página rola normalmente se precisar, sem cortar nada.
+   */
   .mg-login-container {
+    position: static;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 24px 20px;
+    min-height: 100vh;
     /* Mantém um pedaço da arte visível (lado direito, mais denso de
        bactérias) em vez de trocar por gradiente sólido - um degradê por
-       cima só garante contraste pro card, que fica ancorado embaixo. */
+       cima só garante contraste pro card. */
     background-image: linear-gradient(180deg, rgba(6, 12, 20, 0.3), rgba(6, 12, 20, 0.85) 75%),
       url("/login-bg.jpg");
     background-size: cover;
@@ -357,10 +459,9 @@ table.mg-table td {
   }
 
   .mg-login-card {
-    left: 50%;
-    top: auto;
-    bottom: 20px;
-    transform: translateX(-50%);
-    width: calc(100vw - 40px);
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 420px;
   }
 }

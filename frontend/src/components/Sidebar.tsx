@@ -2,19 +2,18 @@ import { NavLink } from "react-router-dom";
 import { NAV_ITEMS } from "../router/navItems";
 import HelluxIcon from "./HelluxIcon";
 
-export default function Sidebar() {
+interface SidebarProps {
+  aberta?: boolean;
+  onFechar?: () => void;
+}
+
+// No desktop (ver breakpoint em global.css) a sidebar fica sempre visível,
+// em fluxo normal. No mobile ela vira um drawer fixo fora da tela,
+// controlado por `aberta` (aciona a classe `mg-sidebar--aberta`, que só
+// tem efeito dentro do media query mobile).
+export default function Sidebar({ aberta = false, onFechar }: SidebarProps) {
   return (
-    <aside
-      style={{
-        width: 240,
-        background: "var(--mg-sidebar-bg)",
-        color: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px 14px",
-        flexShrink: 0,
-      }}
-    >
+    <aside className={`mg-sidebar${aberta ? " mg-sidebar--aberta" : ""}`}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px 24px 8px" }}>
         <HelluxIcon size={34} variante="negativo" />
         <div>
@@ -35,6 +34,7 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             end={item.path === "/"}
+            onClick={onFechar}
             style={({ isActive }) => ({
               display: "flex",
               alignItems: "center",
