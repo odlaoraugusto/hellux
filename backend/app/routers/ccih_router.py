@@ -20,29 +20,19 @@ def obter_indicadores_ccih(
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
     setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
+    tipo_cultura_id: list[uuid.UUID] | None = Query(
+        default=None,
+        description="Filtra por um ou mais tipos de cultura do catálogo (?tipo_cultura_id=X&tipo_cultura_id=Y). Omitir traz todos.",
+    ),
     db: Session = Depends(get_db),
 ):
-    """Indicadores gerais - todos os exames, exceto os de vigilância."""
+    """Indicadores gerais, opcionalmente filtrados por setor e/ou tipo(s) de cultura."""
     service = CCIHService(db)
-    indicadores = service.indicadores(data_inicio, data_fim, setor_id=setor_id)
+    indicadores = service.indicadores(
+        data_inicio, data_fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_id
+    )
     return success_response(
         indicadores.model_dump(mode="json"), message="Indicadores da CCIH calculados com sucesso."
-    )
-
-
-@router.get("/indicadores/vigilancia")
-def obter_indicadores_ccih_vigilancia(
-    data_inicio: date | None = Query(default=None),
-    data_fim: date | None = Query(default=None),
-    setor_id: uuid.UUID | None = Query(default=None, description="Filtra por setor do exame"),
-    db: Session = Depends(get_db),
-):
-    """Indicadores dedicados aos exames de vigilância (rastreio/colonização)."""
-    service = CCIHService(db)
-    indicadores = service.indicadores_vigilancia(data_inicio, data_fim, setor_id=setor_id)
-    return success_response(
-        indicadores.model_dump(mode="json"),
-        message="Indicadores de vigilância calculados com sucesso.",
     )
 
 

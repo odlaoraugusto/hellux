@@ -22,6 +22,7 @@ export interface IndicadoresCCIH {
   periodo_inicio: string;
   periodo_fim: string;
   filtro_setor: string | null;
+  filtro_tipos_cultura: string[] | null;
   total_solicitacoes: number;
   total_culturas_positivas: number;
   taxa_positividade: number;

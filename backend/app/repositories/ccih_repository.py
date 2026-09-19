@@ -18,6 +18,7 @@ comportamento atual; tenants novos que nomearem seu tipo de vigilância de
 forma diferente precisam usar exatamente esse nome por enquanto
 (limitação conhecida, documentada no relatório da Fase 1).
 """
+import uuid
 from datetime import date
 
 from sqlalchemy import case, func, select
@@ -55,6 +56,13 @@ class CCIHRepository:
         `apenas_vigilancia=True` -> só exames cujo tipo de cultura é
         "vigilância"; `False` -> todos, EXCETO vigilância; `None` -> sem
         filtro nenhum por tipo de cultura.
+
+        Usado só por `matriz_sensibilidade` (sem UI própria ainda) - os
+        indicadores gerais (`/api/ccih/indicadores`) usaram esse filtro
+        binário até a Fase 3, quando viraram um filtro livre por
+        `tipo_cultura_id` (ver `_filtro_tipo_cultura` abaixo), já que o
+        usuário quis poder escolher qualquer combinação de tipos de
+        cultura, não só "vigilância vs. resto".
         """
         if apenas_vigilancia is None:
             return stmt
@@ -63,12 +71,18 @@ class CCIHRepository:
             return stmt.where(func.lower(TipoCultura.nome) == NOME_TIPO_CULTURA_VIGILANCIA)
         return stmt.where(func.lower(TipoCultura.nome) != NOME_TIPO_CULTURA_VIGILANCIA)
 
+    def _filtro_tipo_cultura(self, stmt, tipo_cultura_ids: list[uuid.UUID] | None):
+        """Filtro livre por tipo de cultura - lista vazia/None = sem filtro (todos)."""
+        if not tipo_cultura_ids:
+            return stmt
+        return stmt.where(Exame.tipo_cultura_id.in_(tipo_cultura_ids))
+
     def total_exames(
         self,
         inicio: date,
         fim: date,
         setor_id=None,
-        apenas_vigilancia: bool | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> int:
         stmt = select(func.count(Exame.id)).where(
             Exame.is_active.is_(True),
@@ -77,7 +91,7 @@ class CCIHRepository:
         )
         if setor_id:
             stmt = stmt.where(Exame.setor_id == setor_id)
-        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        stmt = self._filtro_tipo_cultura(stmt, tipo_cultura_ids)
         return self.db.scalar(stmt) or 0
 
     def total_exames_por_status(
@@ -86,7 +100,7 @@ class CCIHRepository:
         fim: date,
         apenas_positivos: bool = False,
         setor_id=None,
-        apenas_vigilancia: bool | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> int:
         stmt = select(func.count(Exame.id)).where(
             Exame.is_active.is_(True),
@@ -99,7 +113,7 @@ class CCIHRepository:
             stmt = stmt.where(Exame.status != StatusExameEnum.AGUARDANDO_TRIAGEM)
         if setor_id:
             stmt = stmt.where(Exame.setor_id == setor_id)
-        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        stmt = self._filtro_tipo_cultura(stmt, tipo_cultura_ids)
         return self.db.scalar(stmt) or 0
 
     def distribuicao_por_setor(
@@ -107,7 +121,7 @@ class CCIHRepository:
         inicio: date,
         fim: date,
         setor_id=None,
-        apenas_vigilancia: bool | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> list[tuple[str, int]]:
         nome_setor = func.coalesce(Setor.nome, SETOR_NAO_INFORMADO)
         stmt = (
@@ -125,7 +139,7 @@ class CCIHRepository:
         )
         if setor_id:
             stmt = stmt.where(Exame.setor_id == setor_id)
-        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        stmt = self._filtro_tipo_cultura(stmt, tipo_cultura_ids)
         return list(self.db.execute(stmt).all())
 
     def perfil_microbiologico(
@@ -133,7 +147,7 @@ class CCIHRepository:
         inicio: date,
         fim: date,
         setor_id=None,
-        apenas_vigilancia: bool | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> list[tuple[str, int]]:
         stmt = (
             select(Microrganismo.nome, func.count(ExameIsolado.id))
@@ -151,7 +165,7 @@ class CCIHRepository:
         )
         if setor_id:
             stmt = stmt.where(Exame.setor_id == setor_id)
-        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        stmt = self._filtro_tipo_cultura(stmt, tipo_cultura_ids)
         return list(self.db.execute(stmt).all())
 
     def taxa_resistencia(
@@ -159,7 +173,7 @@ class CCIHRepository:
         inicio: date,
         fim: date,
         setor_id=None,
-        apenas_vigilancia: bool | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> list[tuple[str, int, int, int]]:
         total_testado = func.count(ExameAntibiograma.id)
         total_resistente = func.sum(
@@ -188,7 +202,7 @@ class CCIHRepository:
         )
         if setor_id:
             stmt = stmt.where(Exame.setor_id == setor_id)
-        stmt = self._filtro_vigilancia(stmt, apenas_vigilancia)
+        stmt = self._filtro_tipo_cultura(stmt, tipo_cultura_ids)
         resultado = self.db.execute(stmt).all()
         return [
             (nome, testado, resistente or 0, sensivel or 0)

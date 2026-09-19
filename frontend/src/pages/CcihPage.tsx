@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { CarregandoBarras } from "../components/CarregandoBarras";
-import { obterIndicadoresCCIH, obterIndicadoresCCIHVigilancia } from "../services/ccihService";
+import { obterIndicadoresCCIH } from "../services/ccihService";
 import { listarSetores } from "../services/setorService";
+import { listarTiposCultura } from "../services/tipoCulturaService";
 import { IndicadoresCCIH } from "../types/ccih";
-
-type Visao = "geral" | "vigilancia";
+import { Setor } from "../types/setor";
+import { TipoCultura } from "../types/tipoCultura";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -40,11 +41,12 @@ function BarraPercentual({ percentual, cor }: { percentual: number; cor: string 
 }
 
 export default function CcihPage() {
-  const [visao, setVisao] = useState<Visao>("geral");
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
   const [dataFim, setDataFim] = useState(hojeISO());
-  const [setor, setSetor] = useState("");
-  const [setoresCatalogo, setSetoresCatalogo] = useState<string[]>([]);
+  const [setorId, setSetorId] = useState("");
+  const [setoresCatalogo, setSetoresCatalogo] = useState<Setor[]>([]);
+  const [tiposCulturaCatalogo, setTiposCulturaCatalogo] = useState<TipoCultura[]>([]);
+  const [tiposCulturaSelecionados, setTiposCulturaSelecionados] = useState<string[]>([]);
   const [indicadores, setIndicadores] = useState<IndicadoresCCIH | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -53,8 +55,12 @@ export default function CcihPage() {
     setCarregando(true);
     setErro(null);
     try {
-      const buscar = visao === "vigilancia" ? obterIndicadoresCCIHVigilancia : obterIndicadoresCCIH;
-      const resultado = await buscar(dataInicio, dataFim, setor || undefined);
+      const resultado = await obterIndicadoresCCIH({
+        dataInicio,
+        dataFim,
+        setorId: setorId || undefined,
+        tipoCulturaIds: tiposCulturaSelecionados,
+      });
       setIndicadores(resultado);
     } catch {
       setErro(
@@ -66,37 +72,26 @@ export default function CcihPage() {
     }
   }
 
-  // Recarrega ao trocar de visão (Geral / Vigilância) e uma vez na montagem.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visao]);
+  }, []);
 
   useEffect(() => {
-    listarSetores().then((res) => setSetoresCatalogo(res.items.map((s) => s.nome)));
+    listarSetores().then((res) => setSetoresCatalogo(res.items));
+    listarTiposCultura().then((res) => setTiposCulturaCatalogo(res.items));
   }, []);
+
+  function alternarTipoCultura(id: string) {
+    setTiposCulturaSelecionados((atual) =>
+      atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]
+    );
+  }
 
   return (
     <MainLayout titulo="CCIH" subtitulo="Indicadores epidemiológicos e perfil de resistência">
-      <div className="mg-page-header" style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className={`mg-btn ${visao === "geral" ? "mg-btn-primary" : "mg-btn-outline"}`}
-            onClick={() => setVisao("geral")}
-          >
-            Geral
-          </button>
-          <button
-            className={`mg-btn ${visao === "vigilancia" ? "mg-btn-primary" : "mg-btn-outline"}`}
-            onClick={() => setVisao("vigilancia")}
-          >
-            Cultura de Vigilância
-          </button>
-        </div>
-      </div>
-
-      <div className="mg-page-header">
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div className="mg-page-header" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div className="mg-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <label style={{ margin: 0 }}>De</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
@@ -107,11 +102,11 @@ export default function CcihPage() {
           </div>
           <div className="mg-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <label style={{ margin: 0 }}>Setor</label>
-            <select value={setor} onChange={(e) => setSetor(e.target.value)}>
+            <select value={setorId} onChange={(e) => setSetorId(e.target.value)}>
               <option value="">Todos os setores</option>
-              {setoresCatalogo.map((nome) => (
-                <option key={nome} value={nome}>
-                  {nome}
+              {setoresCatalogo.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
                 </option>
               ))}
             </select>
@@ -120,6 +115,43 @@ export default function CcihPage() {
             Aplicar
           </button>
         </div>
+
+        {tiposCulturaCatalogo.length > 0 && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ fontSize: 13, fontWeight: 500, color: "var(--mg-cinza-600)" }}>
+              Tipo de cultura
+            </label>
+            {tiposCulturaCatalogo.map((t) => {
+              const ativo = tiposCulturaSelecionados.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => alternarTipoCultura(t.id)}
+                  className={`mg-btn ${ativo ? "mg-btn-primary" : "mg-btn-outline"}`}
+                  style={{ padding: "6px 12px", fontSize: 13 }}
+                >
+                  {t.nome}
+                </button>
+              );
+            })}
+            {tiposCulturaSelecionados.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTiposCulturaSelecionados([])}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "6px 4px",
+                  fontSize: 13,
+                  color: "var(--mg-cinza-600)",
+                }}
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
@@ -130,11 +162,18 @@ export default function CcihPage() {
           <p style={{ margin: "-8px 0 16px 0", fontSize: 13, color: "var(--mg-cinza-600)" }}>
             Indicadores de{" "}
             {new Date(`${indicadores.periodo_inicio}T00:00:00`).toLocaleDateString("pt-BR")} até{" "}
-            {new Date(`${indicadores.periodo_fim}T00:00:00`).toLocaleDateString("pt-BR")} ·{" "}
-            {indicadores.filtro_setor ? (
-              <strong>Setor: {indicadores.filtro_setor}</strong>
-            ) : (
-              "todos os setores"
+            {new Date(`${indicadores.periodo_fim}T00:00:00`).toLocaleDateString("pt-BR")}
+            {indicadores.filtro_setor && (
+              <>
+                {" "}
+                · <strong>Setor: {indicadores.filtro_setor}</strong>
+              </>
+            )}
+            {indicadores.filtro_tipos_cultura && indicadores.filtro_tipos_cultura.length > 0 && (
+              <>
+                {" "}
+                · <strong>Tipo de cultura: {indicadores.filtro_tipos_cultura.join(", ")}</strong>
+              </>
             )}
           </p>
 

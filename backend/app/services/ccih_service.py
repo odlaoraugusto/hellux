@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.ccih_repository import CCIHRepository
 from app.repositories.setor_repository import SetorRepository
+from app.repositories.tipo_cultura_repository import TipoCulturaRepository
 from app.schemas.ccih import (
     DistribuicaoSetorOut,
     IndicadoresCCIHOut,
@@ -36,15 +37,21 @@ class CCIHService:
     def __init__(self, db: Session):
         self.repository = CCIHRepository(db)
         self.setor_repository = SetorRepository(db)
+        self.tipo_cultura_repository = TipoCulturaRepository(db)
 
     def indicadores(
         self,
         data_inicio: date | None = None,
         data_fim: date | None = None,
         setor_id: uuid.UUID | None = None,
+        tipo_cultura_ids: list[uuid.UUID] | None = None,
     ) -> IndicadoresCCIHOut:
-        """Indicadores gerais - todos os exames, exceto os de vigilância."""
-        return self._calcular(data_inicio, data_fim, setor_id, apenas_vigilancia=False)
+        """
+        Indicadores gerais. `tipo_cultura_ids` filtra por um ou mais tipos
+        de cultura do catálogo do tenant (ex.: só Hemocultura + Vigilância)
+        - lista vazia/None não filtra, traz todos.
+        """
+        return self._calcular(data_inicio, data_fim, setor_id, tipo_cultura_ids)
 
     def indicadores_vigilancia(
         self,
@@ -52,8 +59,21 @@ class CCIHService:
         data_fim: date | None = None,
         setor_id: uuid.UUID | None = None,
     ) -> IndicadoresCCIHOut:
-        """Indicadores dedicados aos exames de vigilância (rastreio/colonização)."""
-        return self._calcular(data_inicio, data_fim, setor_id, apenas_vigilancia=True)
+        """
+        Compatibilidade com o relatório PDF de vigilância (Fase 1.6): usa
+        o filtro livre por `tipo_cultura_ids` resolvendo o(s) tipo(s) de
+        cultura cujo nome é "vigilância" (case-insensitive) no catálogo do
+        tenant - mesmo comportamento de antes, só que reaproveitando o
+        filtro novo em vez de um caminho de código à parte.
+        """
+        tipo = self.tipo_cultura_repository.get_by_nome("vigilancia")
+        # Sem tipo "vigilância" cadastrado -> filtro com um id inexistente
+        # de propósito, pra não bater com nenhum exame (mesmo efeito do
+        # filtro antigo, que também não trazia nenhum resultado nesse caso
+        # - lista vazia/None em `_filtro_tipo_cultura` significaria "sem
+        # filtro" e traria tudo, o oposto do que queremos aqui).
+        tipo_cultura_ids = [tipo.id] if tipo else [uuid.uuid4()]
+        return self._calcular(data_inicio, data_fim, setor_id, tipo_cultura_ids)
 
     def matriz_sensibilidade(
         self,
@@ -101,30 +121,42 @@ class CCIHService:
         setor = self.setor_repository.get_by_id(setor_id)
         return setor.nome if setor else None
 
+    def _nomes_dos_tipos_cultura(
+        self, tipo_cultura_ids: list[uuid.UUID] | None
+    ) -> list[str] | None:
+        if not tipo_cultura_ids:
+            return None
+        nomes = [
+            tipo.nome
+            for tipo_id in tipo_cultura_ids
+            if (tipo := self.tipo_cultura_repository.get_by_id(tipo_id)) is not None
+        ]
+        return nomes or None
+
     def _calcular(
         self,
         data_inicio: date | None,
         data_fim: date | None,
         setor_id: uuid.UUID | None,
-        apenas_vigilancia: bool,
+        tipo_cultura_ids: list[uuid.UUID] | None,
     ) -> IndicadoresCCIHOut:
         hoje = date.today()
         inicio = data_inicio or _primeiro_dia_do_mes(hoje)
         fim = data_fim or hoje
 
         total_exames = self.repository.total_exames(
-            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
+            inicio, fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_ids
         )
 
         total_finalizados = self.repository.total_exames_por_status(
-            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
+            inicio, fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_ids
         )
         total_positivos = self.repository.total_exames_por_status(
             inicio,
             fim,
             apenas_positivos=True,
             setor_id=setor_id,
-            apenas_vigilancia=apenas_vigilancia,
+            tipo_cultura_ids=tipo_cultura_ids,
         )
 
         taxa_positividade = (
@@ -134,7 +166,7 @@ class CCIHService:
         )
 
         distribuicao_raw = self.repository.distribuicao_por_setor(
-            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
+            inicio, fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_ids
         )
         distribuicao = [
             DistribuicaoSetorOut(setor=setor, total_positivas=total)
@@ -142,7 +174,7 @@ class CCIHService:
         ]
 
         perfil_raw = self.repository.perfil_microbiologico(
-            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
+            inicio, fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_ids
         )
         total_isolados = sum(qtd for _, qtd in perfil_raw)
         perfil = [
@@ -157,7 +189,7 @@ class CCIHService:
         ]
 
         resistencia_raw = self.repository.taxa_resistencia(
-            inicio, fim, setor_id=setor_id, apenas_vigilancia=apenas_vigilancia
+            inicio, fim, setor_id=setor_id, tipo_cultura_ids=tipo_cultura_ids
         )
         resistencia = [
             TaxaResistenciaOut(
@@ -179,6 +211,7 @@ class CCIHService:
             periodo_inicio=inicio,
             periodo_fim=fim,
             filtro_setor=self._nome_do_setor(setor_id),
+            filtro_tipos_cultura=self._nomes_dos_tipos_cultura(tipo_cultura_ids),
             total_solicitacoes=total_exames,
             total_culturas_positivas=total_positivos,
             taxa_positividade=taxa_positividade,
