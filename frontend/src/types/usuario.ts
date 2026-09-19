@@ -2,6 +2,7 @@ export type PerfilUsuario = "ADMIN" | "BIOMEDICO" | "TECNICO" | "VISUALIZADOR";
 
 export interface Usuario {
   id: string;
+  tenant_id: string | null;
   nome: string;
   login: string;
   perfil: PerfilUsuario;

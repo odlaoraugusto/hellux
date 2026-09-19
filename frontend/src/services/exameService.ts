@@ -1,38 +1,36 @@
 import { api, ApiResponse } from "./api";
-import { Cultura, CulturaListagem, ResultadoCultura } from "../types/cultura";
-import { ExameFormData } from "../types/exame";
+import { ExameCreate, ExameListagem, ExameOut, ExameUpdate, StatusExame } from "../types/exame";
 
 export async function listarExames(
-  resultado?: ResultadoCultura,
+  status?: StatusExame[],
   page = 1,
   pageSize = 20
-): Promise<CulturaListagem> {
-  const response = await api.get<ApiResponse<CulturaListagem>>("/api/exames", {
-    params: { resultado, page, page_size: pageSize },
-  });
+): Promise<ExameListagem> {
+  // Monta os params manualmente (em vez de passar `{ status, page, ... }`
+  // direto pro axios) pra garantir `?status=A&status=B` - o serializador
+  // padrão do axios usa `status[]=A&status[]=B`, que o FastAPI não
+  // reconhece como o mesmo query param repetido.
+  const params = new URLSearchParams();
+  (status ?? []).forEach((s) => params.append("status", s));
+  params.set("page", String(page));
+  params.set("page_size", String(pageSize));
+
+  const response = await api.get<ApiResponse<ExameListagem>>("/api/exames", { params });
   return response.data.data;
 }
 
-export async function obterExame(id: string): Promise<Cultura> {
-  const response = await api.get<ApiResponse<Cultura>>(`/api/exames/${id}`);
+export async function obterExame(id: string): Promise<ExameOut> {
+  const response = await api.get<ApiResponse<ExameOut>>(`/api/exames/${id}`);
   return response.data.data;
 }
 
-export async function criarExame(dados: ExameFormData): Promise<Cultura> {
-  const response = await api.post<ApiResponse<Cultura>>("/api/exames", dados);
+export async function criarExame(dados: ExameCreate): Promise<ExameOut> {
+  const response = await api.post<ApiResponse<ExameOut>>("/api/exames", dados);
   return response.data.data;
 }
 
-export async function atualizarExame(
-  id: string,
-  dados: Partial<ExameFormData>
-): Promise<Cultura> {
-  const response = await api.put<ApiResponse<Cultura>>(`/api/exames/${id}`, dados);
-  return response.data.data;
-}
-
-export async function liberarExame(id: string): Promise<Cultura> {
-  const response = await api.post<ApiResponse<Cultura>>(`/api/exames/${id}/liberar`);
+export async function atualizarExame(id: string, dados: ExameUpdate): Promise<ExameOut> {
+  const response = await api.put<ApiResponse<ExameOut>>(`/api/exames/${id}`, dados);
   return response.data.data;
 }
 

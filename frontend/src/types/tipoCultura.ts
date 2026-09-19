@@ -1,20 +1,18 @@
-export interface Setor {
+export interface TipoCultura {
   id: string;
   nome: string;
   descricao: string | null;
-  macro_grupo?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface SetorListagem {
+export interface TipoCulturaListagem {
   total: number;
-  items: Setor[];
+  items: TipoCultura[];
 }
 
-export interface SetorFormData {
+export interface TipoCulturaFormData {
   nome: string;
   descricao?: string | null;
-  macro_grupo?: string | null;
 }

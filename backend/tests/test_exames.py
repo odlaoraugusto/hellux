@@ -177,6 +177,22 @@ def test_listar_exames_filtra_por_status(authenticated_client):
     assert body["items"][0]["status"] == "NEGATIVO"
 
 
+def test_listar_exames_filtra_por_multiplos_status(authenticated_client):
+    criar_exame(authenticated_client, prontuario="m1", status="NEGATIVO")
+    criar_exame(authenticated_client, prontuario="m2", status="POSITIVO")
+    criar_exame(authenticated_client, prontuario="m3")  # AGUARDANDO_TRIAGEM
+
+    response = authenticated_client.get(
+        "/api/exames", params=[("status", "NEGATIVO"), ("status", "POSITIVO")]
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["total"] == 2
+    status_retornados = {item["status"] for item in body["items"]}
+    assert status_retornados == {"NEGATIVO", "POSITIVO"}
+
+
 def test_obter_exame_especifico(authenticated_client):
     criado = criar_exame(authenticated_client).json()["data"]
 

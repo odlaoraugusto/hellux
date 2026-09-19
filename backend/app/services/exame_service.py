@@ -33,7 +33,7 @@ class ExameService:
 
     def listar(
         self,
-        status: StatusExameEnum | None,
+        status: list[StatusExameEnum] | None,
         page: int = 1,
         page_size: int = 20,
     ):

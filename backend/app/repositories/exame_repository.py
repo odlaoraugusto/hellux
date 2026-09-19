@@ -43,14 +43,17 @@ class ExameRepository(BaseRepository[Exame]):
 
     def search(
         self,
-        status: StatusExameEnum | None = None,
+        status: list[StatusExameEnum] | StatusExameEnum | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Exame], int]:
         stmt = self._base_query().where(Exame.is_active.is_(True))
 
         if status:
-            stmt = stmt.where(Exame.status == status)
+            if isinstance(status, list):
+                stmt = stmt.where(Exame.status.in_(status))
+            else:
+                stmt = stmt.where(Exame.status == status)
 
         total = len(self.db.scalars(stmt).unique().all())
         items = (

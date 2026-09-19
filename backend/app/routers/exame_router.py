@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/exames", tags=["Exames"], dependencies=[Depends(
 
 @router.get("")
 def listar_exames(
-    status: StatusExameEnum | None = Query(default=None),
+    status: list[StatusExameEnum] | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),

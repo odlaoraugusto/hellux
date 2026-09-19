@@ -20,6 +20,11 @@ import {
 } from "../services/antimicrobianoService";
 import { criarSetor, listarSetores, removerSetor } from "../services/setorService";
 import { criarMaterial, listarMateriais, removerMaterial } from "../services/materialService";
+import {
+  criarTipoCultura,
+  listarTiposCultura,
+  removerTipoCultura,
+} from "../services/tipoCulturaService";
 import { listarLogsAuditoria } from "../services/auditoriaService";
 import { extrairMensagemErro } from "../services/api";
 import { Usuario, PerfilUsuario } from "../types/usuario";
@@ -28,6 +33,7 @@ import { Microrganismo } from "../types/microrganismo";
 import { Setor } from "../types/setor";
 import { Material } from "../types/material";
 import { Antimicrobiano } from "../types/antimicrobiano";
+import { TipoCultura } from "../types/tipoCultura";
 import { LogAuditoria } from "../types/auditoria";
 
 type Aba = "usuarios" | "parametros" | "catalogos" | "auditoria";
@@ -278,26 +284,31 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
   const [antimicrobianos, setAntimicrobianos] = useState<Antimicrobiano[]>([]);
   const [setores, setSetores] = useState<Setor[]>([]);
   const [materiais, setMateriais] = useState<Material[]>([]);
+  const [tiposCultura, setTiposCultura] = useState<TipoCultura[]>([]);
   const [novoMicro, setNovoMicro] = useState("");
   const [novoAnti, setNovoAnti] = useState("");
   const [novoSetor, setNovoSetor] = useState("");
+  const [novoSetorMacroGrupo, setNovoSetorMacroGrupo] = useState("");
   const [novoMaterial, setNovoMaterial] = useState("");
+  const [novoTipoCultura, setNovoTipoCultura] = useState("");
 
   async function carregar() {
-    const [micro, anti, setoresRes, materiaisRes] = await Promise.all([
+    const [micro, anti, setoresRes, materiaisRes, tiposCulturaRes] = await Promise.all([
       listarMicrorganismos(),
       listarAntimicrobianos(),
       listarSetores(),
       listarMateriais(),
+      listarTiposCultura(),
     ]);
     setMicrorganismos(micro.items);
     setAntimicrobianos(anti.items);
     setSetores(setoresRes.items);
     setMateriais(materiaisRes.items);
+    setTiposCultura(tiposCulturaRes.items);
   }
 
-  // Carrega os catálogos de microrganismos, antimicrobianos, setores e
-  // materiais uma vez, na montagem da aba.
+  // Carrega os catálogos de microrganismos, antimicrobianos, setores,
+  // materiais e tipos de cultura uma vez, na montagem da aba.
   useEffect(() => {
     carregar();
   }, []);
@@ -318,8 +329,9 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
 
   async function handleAdicionarSetor() {
     if (!novoSetor.trim()) return;
-    await criarSetor({ nome: novoSetor.trim() });
+    await criarSetor({ nome: novoSetor.trim(), macro_grupo: novoSetorMacroGrupo.trim() || null });
     setNovoSetor("");
+    setNovoSetorMacroGrupo("");
     carregar();
   }
 
@@ -327,6 +339,13 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
     if (!novoMaterial.trim()) return;
     await criarMaterial({ nome: novoMaterial.trim() });
     setNovoMaterial("");
+    carregar();
+  }
+
+  async function handleAdicionarTipoCultura() {
+    if (!novoTipoCultura.trim()) return;
+    await criarTipoCultura({ nome: novoTipoCultura.trim() });
+    setNovoTipoCultura("");
     carregar();
   }
 
@@ -351,6 +370,12 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
   async function handleRemoverMaterial(m: Material) {
     if (!window.confirm(`Remover "${m.nome}" do catálogo?`)) return;
     await removerMaterial(m.id);
+    carregar();
+  }
+
+  async function handleRemoverTipoCultura(t: TipoCultura) {
+    if (!window.confirm(`Remover "${t.nome}" do catálogo?`)) return;
+    await removerTipoCultura(t.id);
     carregar();
   }
 
@@ -431,15 +456,23 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
       <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
         <h3 style={{ marginTop: 0 }}>Setores</h3>
         <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
-          Usado para padronizar o campo "Origem" das Solicitações.
+          Usado para padronizar o campo "Setor" dos Exames. O macro-grupo agrupa setores
+          (ex.: "UTI", "Enfermaria") pra não fragmentar a Matriz de Sensibilidade CCIH.
         </p>
         <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 12 }}>
           {setores.map((s) => (
             <div
               key={s.id}
-              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 14 }}
             >
-              <span>{s.nome}</span>
+              <span>
+                {s.nome}
+                {s.macro_grupo && (
+                  <span style={{ marginLeft: 6, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+                    ({s.macro_grupo})
+                  </span>
+                )}
+              </span>
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
@@ -460,6 +493,12 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
               onChange={(e) => setNovoSetor(e.target.value)}
               style={{ flex: 1 }}
             />
+            <input
+              placeholder="Macro-grupo (opcional)"
+              value={novoSetorMacroGrupo}
+              onChange={(e) => setNovoSetorMacroGrupo(e.target.value)}
+              style={{ flex: 1 }}
+            />
             <button className="mg-btn mg-btn-outline" onClick={handleAdicionarSetor}>
               + Adicionar
             </button>
@@ -470,7 +509,7 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
       <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
         <h3 style={{ marginTop: 0 }}>Materiais</h3>
         <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
-          Usado para padronizar o campo "Material" das Solicitações.
+          Usado para padronizar o campo "Material" dos Exames.
         </p>
         <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 12 }}>
           {materiais.map((m) => (
@@ -500,6 +539,45 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
               style={{ flex: 1 }}
             />
             <button className="mg-btn mg-btn-outline" onClick={handleAdicionarMaterial}>
+              + Adicionar
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
+        <h3 style={{ marginTop: 0 }}>Tipos de Cultura</h3>
+        <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+          Usado para padronizar o campo "Tipo de Cultura" dos Exames.
+        </p>
+        <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 12 }}>
+          {tiposCultura.map((t) => (
+            <div
+              key={t.id}
+              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+            >
+              <span>{t.nome}</span>
+              {souAdmin && (
+                <button
+                  className="mg-btn mg-btn-outline"
+                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  onClick={() => handleRemoverTipoCultura(t)}
+                >
+                  Remover
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {souAdmin && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              placeholder="Novo tipo de cultura..."
+              value={novoTipoCultura}
+              onChange={(e) => setNovoTipoCultura(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button className="mg-btn mg-btn-outline" onClick={handleAdicionarTipoCultura}>
               + Adicionar
             </button>
           </div>

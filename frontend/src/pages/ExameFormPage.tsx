@@ -1,162 +1,149 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-import MicrorganismoMultiSelect from "../components/MicrorganismoMultiSelect";
-import ResultadosSIREditor from "../components/ResultadosSIREditor";
 import { atualizarExame, criarExame, obterExame } from "../services/exameService";
-import {
-  atualizarAntibiograma,
-  criarAntibiograma,
-  listarAntibiogramas,
-} from "../services/antibiogramaService";
-import { marcarIsoladoSemAntibiograma } from "../services/culturaService";
-import { listarMateriais } from "../services/materialService";
 import { listarSetores } from "../services/setorService";
+import { listarTiposCultura } from "../services/tipoCulturaService";
+import { listarMateriais } from "../services/materialService";
+import { listarMicrorganismos } from "../services/microrganismoService";
+import { listarAntimicrobianos } from "../services/antimicrobianoService";
 import { listarPacientes } from "../services/pacienteService";
 import { extrairMensagemErro } from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
-import { CulturaMicrorganismo, GrupoCultura, ResultadoCultura } from "../types/cultura";
-import { ExameFormData } from "../types/exame";
-import { Antibiograma, ResultadoAntimicrobiano } from "../types/antibiograma";
+import {
+  ExameAntibiogramaIn,
+  ExameCreate,
+  ExameIsoladoIn,
+  ExameUpdate,
+  MECANISMO_RESISTENCIA_LABELS,
+  MECANISMO_RESISTENCIA_OPCOES,
+  MecanismoResistencia,
+  RESULTADO_SIR_LABELS,
+  RESULTADO_SIR_OPCOES,
+  ResultadoSIR,
+  STATUS_EXAME_LABELS,
+  STATUS_EXAME_OPCOES,
+  STATUS_PERMITE_ISOLADOS,
+  StatusExame,
+} from "../types/exame";
+import { Setor } from "../types/setor";
+import { TipoCultura } from "../types/tipoCultura";
+import { Material } from "../types/material";
+import { Microrganismo } from "../types/microrganismo";
+import { Antimicrobiano } from "../types/antimicrobiano";
 
-const FORM_INICIAL: ExameFormData = {
+interface FormState {
+  paciente_prontuario: string;
+  paciente_nome: string;
+  setor_id: string;
+  tipo_cultura_id: string;
+  material_id: string;
+  data_coleta: string;
+  previsao_liberacao: string;
+  status: StatusExame;
+  identificacao_preliminar: string;
+  observacoes: string;
+}
+
+const FORM_INICIAL: FormState = {
   paciente_prontuario: "",
   paciente_nome: "",
-  material: "",
-  origem: "",
-  prioridade: "ROTINA",
+  setor_id: "",
+  tipo_cultura_id: "",
+  material_id: "",
   data_coleta: "",
-  observacoes_solicitacao: "",
-  grupo: "CULTURA_GERAL",
-  resultado: "EM_ANALISE",
-  microrganismo_ids: [],
   previsao_liberacao: "",
-  observacoes_cultura: "",
+  status: "AGUARDANDO_TRIAGEM",
+  identificacao_preliminar: "",
+  observacoes: "",
 };
 
-const RESULTADO_OPCOES: ResultadoCultura[] = [
-  "EM_ANALISE",
-  "POSITIVA",
-  "NEGATIVA",
-  "CONTAMINADA",
-];
+// Estrutura de edição local de um isolado - espelha `ExameIsoladoIn`, mas
+// com `motivo_dispensa_tsa` sempre string (nunca null) pra facilitar o
+// binding com o <input>, e é convertida pro formato do backend só na hora
+// de montar o payload (ver `montarIsoladosPayload`).
+interface IsoladoEditavel {
+  microrganismo_id: string;
+  mecanismo_resistencia: MecanismoResistencia;
+  nao_realizado_tecnico: boolean;
+  motivo_dispensa_tsa: string;
+  antibiograma: ExameAntibiogramaIn[];
+}
 
-const GRUPO_OPCOES: { valor: GrupoCultura; label: string }[] = [
-  { valor: "HEMOCULTURA", label: "Hemocultura" },
-  { valor: "CULTURA_GERAL", label: "Cultura Geral" },
-  { valor: "VIGILANCIA", label: "Cultura de Vigilância" },
-  { valor: "BK", label: "Cultura para BK" },
-  { valor: "FUNGOS", label: "Cultura para Fungos" },
-];
+function criarIsoladoVazio(): IsoladoEditavel {
+  return {
+    microrganismo_id: "",
+    mecanismo_resistencia: "NENHUM",
+    nao_realizado_tecnico: false,
+    motivo_dispensa_tsa: "",
+    antibiograma: [],
+  };
+}
 
 export default function ExameFormPage() {
   const { id } = useParams();
   const editando = Boolean(id);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<ExameFormData>(FORM_INICIAL);
-  const [microrganismosVinculados, setMicrorganismosVinculados] = useState<
-    CulturaMicrorganismo[]
-  >([]);
-  const [antibiogramasPorIsolado, setAntibiogramasPorIsolado] = useState<
-    Record<string, Antibiograma | null>
-  >({});
-  const [resultadosPorIsolado, setResultadosPorIsolado] = useState<
-    Record<string, ResultadoAntimicrobiano[]>
-  >({});
-  const [salvandoAntibiogramaId, setSalvandoAntibiogramaId] = useState<string | null>(null);
-  const [salvoAntibiogramaId, setSalvoAntibiogramaId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(FORM_INICIAL);
+  const [isolados, setIsolados] = useState<IsoladoEditavel[]>([]);
+
+  const [setores, setSetores] = useState<Setor[]>([]);
+  const [tiposCultura, setTiposCultura] = useState<TipoCultura[]>([]);
+  const [materiais, setMateriais] = useState<Material[]>([]);
+  const [microrganismos, setMicrorganismos] = useState<Microrganismo[]>([]);
+  const [antimicrobianos, setAntimicrobianos] = useState<Antimicrobiano[]>([]);
+
   const [carregando, setCarregando] = useState(editando);
-  const [carregandoAntibiogramas, setCarregandoAntibiogramas] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [materiaisCatalogo, setMateriaisCatalogo] = useState<string[]>([]);
-  const [setoresCatalogo, setSetoresCatalogo] = useState<string[]>([]);
+
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [pacienteEncontrado, setPacienteEncontrado] = useState<boolean | null>(null);
   const prontuarioDebounced = useDebounce(form.paciente_prontuario, 350);
 
-  // Carrega as sugestões dos catálogos de material/setor uma vez, na montagem do form.
+  // Carrega os catálogos (setor, tipo de cultura, material, microrganismo,
+  // antimicrobiano) uma vez, na montagem do form.
   useEffect(() => {
-    listarMateriais().then((res) => setMateriaisCatalogo(res.items.map((m) => m.nome)));
-    listarSetores().then((res) => setSetoresCatalogo(res.items.map((s) => s.nome)));
+    listarSetores().then((res) => setSetores(res.items));
+    listarTiposCultura().then((res) => setTiposCultura(res.items));
+    listarMateriais().then((res) => setMateriais(res.items));
+    listarMicrorganismos().then((res) => setMicrorganismos(res.items));
+    listarAntimicrobianos().then((res) => setAntimicrobianos(res.items));
   }, []);
 
   useEffect(() => {
     if (!id) return;
     obterExame(id)
-      .then((c) => {
+      .then((exame) => {
         setForm({
-          paciente_prontuario: c.solicitacao?.paciente?.prontuario ?? "",
-          paciente_nome: c.solicitacao?.paciente?.nome ?? "",
-          material: c.solicitacao?.material ?? "",
-          origem: c.solicitacao?.origem ?? "",
-          prioridade: c.solicitacao?.prioridade ?? "ROTINA",
-          data_coleta: c.solicitacao?.data_coleta ? c.solicitacao.data_coleta.slice(0, 10) : "",
-          observacoes_solicitacao: c.solicitacao?.observacoes ?? "",
-          grupo: c.grupo,
-          resultado: c.resultado,
-          microrganismo_ids: c.microrganismos.map((m) => m.microrganismo.id),
-          previsao_liberacao: c.previsao_liberacao ?? "",
-          observacoes_cultura: c.observacoes ?? "",
+          paciente_prontuario: exame.paciente?.prontuario ?? "",
+          paciente_nome: exame.paciente?.nome ?? "",
+          setor_id: exame.setor_id ?? "",
+          tipo_cultura_id: exame.tipo_cultura_id,
+          material_id: exame.material_id,
+          data_coleta: exame.data_coleta ? exame.data_coleta.slice(0, 10) : "",
+          previsao_liberacao: exame.previsao_liberacao ?? "",
+          status: exame.status,
+          identificacao_preliminar: exame.identificacao_preliminar ?? "",
+          observacoes: exame.observacoes ?? "",
         });
-        setMicrorganismosVinculados(c.microrganismos);
+        setIsolados(
+          exame.isolados.map((isolado) => ({
+            microrganismo_id: isolado.microrganismo.id,
+            mecanismo_resistencia: isolado.mecanismo_resistencia,
+            nao_realizado_tecnico: isolado.nao_realizado_tecnico,
+            motivo_dispensa_tsa: isolado.motivo_dispensa_tsa ?? "",
+            antibiograma: isolado.antibiograma.map((a) => ({
+              antimicrobiano_id: a.antimicrobiano.id,
+              resultado: a.resultado,
+            })),
+          }))
+        );
       })
       .catch(() => setErro("Não foi possível carregar os dados do exame."))
       .finally(() => setCarregando(false));
   }, [id]);
-
-  // Seção de antibiogramas: só faz sentido quando já existem microrganismos
-  // isolados vinculados (id = cultura_microrganismo_id) e o resultado é
-  // POSITIVA. Busca, para cada isolado, se já existe um antibiograma lançado.
-  useEffect(() => {
-    if (!editando || form.resultado !== "POSITIVA" || microrganismosVinculados.length === 0) {
-      setAntibiogramasPorIsolado({});
-      return;
-    }
-    let cancelado = false;
-    setCarregandoAntibiogramas(true);
-    Promise.all(
-      microrganismosVinculados.map((m) =>
-        listarAntibiogramas(m.id, 1, 1).then(
-          (res) => [m.id, res.items[0] ?? null] as const
-        )
-      )
-    )
-      .then((pares) => {
-        if (cancelado) return;
-        setAntibiogramasPorIsolado(Object.fromEntries(pares));
-      })
-      .finally(() => {
-        if (!cancelado) setCarregandoAntibiogramas(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [editando, form.resultado, microrganismosVinculados]);
-
-  // Inicializa o editor local de S/I/R de cada isolado a partir do
-  // antibiograma já carregado (se existir) - só na primeira vez que o
-  // isolado aparece, pra não sobrescrever edições ainda não salvas.
-  useEffect(() => {
-    setResultadosPorIsolado((prev) => {
-      let mudou = false;
-      const novo = { ...prev };
-      for (const m of microrganismosVinculados) {
-        if (novo[m.id] === undefined) {
-          const antibiograma = antibiogramasPorIsolado[m.id];
-          novo[m.id] = antibiograma
-            ? antibiograma.resultados.map((r) => ({
-                antimicrobiano_id: r.antimicrobiano.id,
-                resultado: r.resultado,
-              }))
-            : [];
-          mudou = true;
-        }
-      }
-      return mudou ? novo : prev;
-    });
-  }, [microrganismosVinculados, antibiogramasPorIsolado]);
 
   // Ao digitar o prontuário (só na criação), busca com debounce se já
   // existe um paciente com esse prontuário exato - se achar, preenche o
@@ -188,72 +175,158 @@ export default function ExameFormPage() {
     };
   }, [prontuarioDebounced, editando]);
 
-  async function handleToggleSemAntibiograma(isoladoId: string, valor: boolean) {
-    try {
-      const atualizado = await marcarIsoladoSemAntibiograma(isoladoId, valor);
-      setMicrorganismosVinculados((prev) =>
-        prev.map((item) => (item.id === isoladoId ? atualizado : item))
-      );
-    } catch (err: unknown) {
-      window.alert(extrairMensagemErro(err, "Não foi possível atualizar o isolado."));
-    }
-  }
-
-  async function handleSalvarAntibiograma(isolado: CulturaMicrorganismo) {
-    const resultados = resultadosPorIsolado[isolado.id] ?? [];
-    const antibiogramaExistente = antibiogramasPorIsolado[isolado.id];
-    setSalvandoAntibiogramaId(isolado.id);
-    try {
-      const salvo = antibiogramaExistente
-        ? await atualizarAntibiograma(antibiogramaExistente.id, { resultados })
-        : await criarAntibiograma({ cultura_microrganismo_id: isolado.id, resultados });
-      setAntibiogramasPorIsolado((prev) => ({ ...prev, [isolado.id]: salvo }));
-      setSalvoAntibiogramaId(isolado.id);
-      setTimeout(() => {
-        setSalvoAntibiogramaId((atual) => (atual === isolado.id ? null : atual));
-      }, 1500);
-    } catch (err: unknown) {
-      window.alert(extrairMensagemErro(err, "Não foi possível salvar o antibiograma."));
-    } finally {
-      setSalvandoAntibiogramaId(null);
-    }
-  }
-
-  function handleChange<K extends keyof ExameFormData>(campo: K, valor: ExameFormData[K]) {
+  function handleChange<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
-  // Ao mudar o resultado para algo diferente de POSITIVA, limpa os
-  // microrganismos selecionados (mesma regra de negócio de CulturaFormPage).
-  function handleResultadoChange(resultado: ResultadoCultura) {
-    setForm((prev) => ({
-      ...prev,
-      resultado,
-      microrganismo_ids: resultado === "POSITIVA" ? prev.microrganismo_ids : [],
+  // Isolados só fazem sentido quando o status indica cultura positiva
+  // (espelha `STATUS_POSITIVO`/`_validar_isolados` no backend) - ao sair
+  // desses status, os isolados lançados até então são descartados.
+  function handleStatusChange(status: StatusExame) {
+    setForm((prev) => ({ ...prev, status }));
+    if (!STATUS_PERMITE_ISOLADOS.includes(status)) {
+      setIsolados([]);
+    }
+  }
+
+  function handleAdicionarIsolado() {
+    setIsolados((prev) => [...prev, criarIsoladoVazio()]);
+  }
+
+  function handleRemoverIsolado(index: number) {
+    setIsolados((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleAlterarIsolado(index: number, patch: Partial<IsoladoEditavel>) {
+    setIsolados((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
+
+  // Marcar "não realizado tecnicamente" dispensa a exigência de
+  // antibiograma deste isolado (espelha `nao_realizado_tecnico` no
+  // backend) - por isso a sub-seção de antibiograma é limpa ao marcar.
+  function handleToggleNaoRealizado(index: number, valor: boolean) {
+    setIsolados((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, nao_realizado_tecnico: valor, antibiograma: valor ? [] : item.antibiograma }
+          : item
+      )
+    );
+  }
+
+  function handleAdicionarAntibiograma(index: number) {
+    setIsolados((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const usados = new Set(item.antibiograma.map((a) => a.antimicrobiano_id));
+        const disponivel = antimicrobianos.find((a) => !usados.has(a.id));
+        if (!disponivel) return item;
+        const novaLinha: ExameAntibiogramaIn = {
+          antimicrobiano_id: disponivel.id,
+          resultado: "SENSIVEL",
+        };
+        return { ...item, antibiograma: [...item.antibiograma, novaLinha] };
+      })
+    );
+  }
+
+  function handleAlterarAntibiograma(
+    isoladoIndex: number,
+    linhaIndex: number,
+    patch: Partial<ExameAntibiogramaIn>
+  ) {
+    setIsolados((prev) =>
+      prev.map((item, i) =>
+        i === isoladoIndex
+          ? {
+              ...item,
+              antibiograma: item.antibiograma.map((a, j) => (j === linhaIndex ? { ...a, ...patch } : a)),
+            }
+          : item
+      )
+    );
+  }
+
+  function handleRemoverAntibiograma(isoladoIndex: number, linhaIndex: number) {
+    setIsolados((prev) =>
+      prev.map((item, i) =>
+        i === isoladoIndex
+          ? { ...item, antibiograma: item.antibiograma.filter((_, j) => j !== linhaIndex) }
+          : item
+      )
+    );
+  }
+
+  // Valida a mesma regra do backend (`ExameIsoladoIn._validar_motivo_dispensa`)
+  // no cliente, pra dar feedback imediato em vez de esperar o 422 da API.
+  function validarIsolados(): string | null {
+    for (const isolado of isolados) {
+      if (!isolado.microrganismo_id) {
+        return "Selecione o microrganismo de todos os isolados adicionados.";
+      }
+      if (isolado.nao_realizado_tecnico && !isolado.motivo_dispensa_tsa.trim()) {
+        return 'Informe o motivo da dispensa de TSA nos isolados marcados como "não realizado tecnicamente".';
+      }
+    }
+    return null;
+  }
+
+  function montarIsoladosPayload(): ExameIsoladoIn[] {
+    return isolados.map((isolado) => ({
+      microrganismo_id: isolado.microrganismo_id,
+      mecanismo_resistencia: isolado.mecanismo_resistencia,
+      nao_realizado_tecnico: isolado.nao_realizado_tecnico,
+      motivo_dispensa_tsa: isolado.nao_realizado_tecnico ? isolado.motivo_dispensa_tsa : null,
+      antibiograma: isolado.nao_realizado_tecnico ? [] : isolado.antibiograma,
     }));
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSalvando(true);
     setErro(null);
+
+    const mostrarSecaoIsolados = STATUS_PERMITE_ISOLADOS.includes(form.status);
+    if (mostrarSecaoIsolados) {
+      const erroIsolados = validarIsolados();
+      if (erroIsolados) {
+        setErro(erroIsolados);
+        return;
+      }
+    }
+
+    const isoladosPayload = mostrarSecaoIsolados ? montarIsoladosPayload() : [];
+
+    setSalvando(true);
     try {
-      const payload = {
-        ...form,
-        origem: form.origem || null,
-        data_coleta: form.data_coleta || null,
-        observacoes_solicitacao: form.observacoes_solicitacao || null,
-        previsao_liberacao: form.previsao_liberacao || null,
-        observacoes_cultura: form.observacoes_cultura || null,
-      };
       if (editando && id) {
-        const { paciente_prontuario, paciente_nome, ...resto } = payload;
-        await atualizarExame(id, resto);
+        const payload: ExameUpdate = {
+          setor_id: form.setor_id || null,
+          tipo_cultura_id: form.tipo_cultura_id || null,
+          material_id: form.material_id || null,
+          data_coleta: form.data_coleta || null,
+          previsao_liberacao: form.previsao_liberacao || null,
+          status: form.status,
+          identificacao_preliminar: form.identificacao_preliminar || null,
+          observacoes: form.observacoes || null,
+          isolados: isoladosPayload,
+        };
+        await atualizarExame(id, payload);
         navigate("/exames");
       } else {
+        const payload: ExameCreate = {
+          paciente_prontuario: form.paciente_prontuario,
+          paciente_nome: form.paciente_nome,
+          setor_id: form.setor_id || null,
+          tipo_cultura_id: form.tipo_cultura_id,
+          material_id: form.material_id,
+          data_coleta: form.data_coleta || null,
+          previsao_liberacao: form.previsao_liberacao || null,
+          status: form.status,
+          identificacao_preliminar: form.identificacao_preliminar || null,
+          observacoes: form.observacoes || null,
+          isolados: isoladosPayload,
+        };
         const criado = await criarExame(payload);
-        // Cai direto na tela de edição, já pronta para lançar o
-        // antibiograma quando o resultado da cultura sair.
         navigate(`/exames/${criado.id}/editar`);
       }
     } catch (err: unknown) {
@@ -263,8 +336,7 @@ export default function ExameFormPage() {
     }
   }
 
-  const mostrarSecaoAntibiograma =
-    editando && form.resultado === "POSITIVA" && microrganismosVinculados.length > 0;
+  const mostrarSecaoIsolados = STATUS_PERMITE_ISOLADOS.includes(form.status);
 
   // Mensagem de apoio abaixo do campo Prontuário (só na criação).
   let mensagemProntuario: string | null = null;
@@ -283,9 +355,9 @@ export default function ExameFormPage() {
   return (
     <MainLayout
       titulo={editando ? "Editar Exame" : "Novo Exame"}
-      subtitulo="Solicitação e resultado de cultura em uma única tela"
+      subtitulo="Pedido, resultado, isolados e antibiograma em uma única tela"
     >
-      <div className="mg-card" style={{ maxWidth: 820 }}>
+      <div className="mg-card" style={{ maxWidth: 900 }}>
         {carregando ? (
           <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>
         ) : (
@@ -296,7 +368,7 @@ export default function ExameFormPage() {
               </p>
             )}
 
-            <h3 style={{ margin: "0 0 12px 0" }}>Solicitação</h3>
+            <h3 style={{ margin: "0 0 12px 0" }}>Exame</h3>
             <div className="mg-form-grid">
               <div className="mg-field">
                 <label>Prontuário *</label>
@@ -332,41 +404,54 @@ export default function ExameFormPage() {
               </div>
 
               <div className="mg-field">
-                <label>Material *</label>
-                <input
-                  required
-                  list="materiais-catalogo"
-                  value={form.material}
-                  placeholder="Ex.: Hemocultura, Urina, Escarro"
-                  onChange={(e) => handleChange("material", e.target.value)}
-                />
-                <datalist id="materiais-catalogo">
-                  {materiaisCatalogo.map((nome) => (
-                    <option key={nome} value={nome} />
+                <label>Setor</label>
+                <select value={form.setor_id} onChange={(e) => handleChange("setor_id", e.target.value)}>
+                  <option value="">Não informado</option>
+                  {setores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nome}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </div>
 
               <div className="mg-field">
-                <label>Origem</label>
-                <input
-                  list="setores-catalogo"
-                  value={form.origem ?? ""}
-                  placeholder="Ex.: UTI, Enfermaria, Ambulatório"
-                  onChange={(e) => handleChange("origem", e.target.value)}
-                />
-                <datalist id="setores-catalogo">
-                  {setoresCatalogo.map((nome) => (
-                    <option key={nome} value={nome} />
+                <label>Tipo de cultura *</label>
+                <select
+                  required
+                  value={form.tipo_cultura_id}
+                  onChange={(e) => handleChange("tipo_cultura_id", e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {tiposCultura.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome}
+                    </option>
                   ))}
-                </datalist>
+                </select>
+              </div>
+
+              <div className="mg-field">
+                <label>Material *</label>
+                <select
+                  required
+                  value={form.material_id}
+                  onChange={(e) => handleChange("material_id", e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {materiais.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="mg-field">
                 <label>Data da coleta</label>
                 <input
                   type="date"
-                  value={form.data_coleta ?? ""}
+                  value={form.data_coleta}
                   onChange={(e) => handleChange("data_coleta", e.target.value)}
                 />
                 <span style={{ fontSize: 12, color: "var(--mg-cinza-400)" }}>
@@ -374,53 +459,11 @@ export default function ExameFormPage() {
                 </span>
               </div>
 
-              <div className="mg-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Observações da solicitação</label>
-                <textarea
-                  rows={2}
-                  value={form.observacoes_solicitacao ?? ""}
-                  onChange={(e) => handleChange("observacoes_solicitacao", e.target.value)}
-                />
-              </div>
-            </div>
-
-            <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid var(--mg-cinza-200)" }} />
-
-            <h3 style={{ margin: "0 0 12px 0" }}>Resultado da cultura</h3>
-            <div className="mg-form-grid">
-              <div className="mg-field">
-                <label>Exame</label>
-                <select
-                  value={form.grupo}
-                  onChange={(e) => handleChange("grupo", e.target.value as GrupoCultura)}
-                >
-                  {GRUPO_OPCOES.map((g) => (
-                    <option key={g.valor} value={g.valor}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mg-field">
-                <label>Resultado</label>
-                <select
-                  value={form.resultado}
-                  onChange={(e) => handleResultadoChange(e.target.value as ResultadoCultura)}
-                >
-                  {RESULTADO_OPCOES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div className="mg-field">
                 <label>Previsão de liberação</label>
                 <input
                   type="date"
-                  value={form.previsao_liberacao ?? ""}
+                  value={form.previsao_liberacao}
                   onChange={(e) => handleChange("previsao_liberacao", e.target.value)}
                 />
                 <span style={{ fontSize: 12, color: "var(--mg-cinza-400)" }}>
@@ -428,117 +471,229 @@ export default function ExameFormPage() {
                 </span>
               </div>
 
-              {form.resultado === "POSITIVA" && (
-                <div className="mg-field" style={{ gridColumn: "1 / -1" }}>
-                  <label>Microrganismos isolados</label>
-                  <MicrorganismoMultiSelect
-                    value={form.microrganismo_ids}
-                    onChange={(ids) => handleChange("microrganismo_ids", ids)}
-                  />
-                </div>
-              )}
+              <div className="mg-field">
+                <label>Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => handleStatusChange(e.target.value as StatusExame)}
+                >
+                  {STATUS_EXAME_OPCOES.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_EXAME_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="mg-field" style={{ gridColumn: "1 / -1" }}>
-                <label>Observações da cultura</label>
+                <label>Identificação preliminar</label>
+                <input
+                  maxLength={300}
+                  value={form.identificacao_preliminar}
+                  placeholder="Ex.: Cocos Gram-positivos em cachos"
+                  onChange={(e) => handleChange("identificacao_preliminar", e.target.value)}
+                />
+              </div>
+
+              <div className="mg-field" style={{ gridColumn: "1 / -1" }}>
+                <label>Observações</label>
                 <textarea
                   rows={3}
-                  value={form.observacoes_cultura ?? ""}
-                  onChange={(e) => handleChange("observacoes_cultura", e.target.value)}
+                  maxLength={1000}
+                  value={form.observacoes}
+                  onChange={(e) => handleChange("observacoes", e.target.value)}
                 />
               </div>
             </div>
 
-            {mostrarSecaoAntibiograma && (
+            {mostrarSecaoIsolados && (
               <>
                 <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid var(--mg-cinza-200)" }} />
 
-                <h3 style={{ margin: "0 0 12px 0" }}>Antibiograma</h3>
-                {carregandoAntibiogramas ? (
-                  <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {microrganismosVinculados.map((m) => {
-                      const antibiograma = antibiogramasPorIsolado[m.id];
-                      const resultados = resultadosPorIsolado[m.id] ?? [];
-                      return (
-                        <div
-                          key={m.id}
-                          style={{
-                            border: "1px solid var(--mg-cinza-200)",
-                            borderRadius: "var(--mg-radius-sm)",
-                            padding: "12px 14px",
-                          }}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                  }}
+                >
+                  <h3 style={{ margin: 0 }}>Isolados</h3>
+                  <button type="button" className="mg-btn mg-btn-secondary" onClick={handleAdicionarIsolado}>
+                    + Adicionar isolado
+                  </button>
+                </div>
+
+                {isolados.length === 0 && (
+                  <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+                    Nenhum isolado adicionado ainda.
+                  </p>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {isolados.map((isolado, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        border: "1px solid var(--mg-cinza-200)",
+                        borderRadius: "var(--mg-radius-sm)",
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <strong style={{ fontSize: 14 }}>Isolado {index + 1}</strong>
+                        <button
+                          type="button"
+                          className="mg-btn mg-btn-outline"
+                          style={{ color: "var(--mg-erro)" }}
+                          onClick={() => handleRemoverIsolado(index)}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              marginBottom: 10,
-                            }}
-                          >
-                            <strong style={{ fontSize: 14 }}>{m.microrganismo.nome}</strong>
-                            {antibiograma && (
-                              <span
-                                className={`mg-badge ${
-                                  antibiograma.data_liberacao ? "mg-badge-sucesso" : "mg-badge-alerta"
-                                }`}
-                              >
-                                {antibiograma.data_liberacao ? "Liberado" : "Não liberado"}
-                              </span>
-                            )}
-                          </div>
+                          Remover isolado
+                        </button>
+                      </div>
 
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                              fontSize: 13,
-                              marginBottom: m.sem_antibiograma_padronizado ? 0 : 10,
-                            }}
+                      <div className="mg-form-grid">
+                        <div className="mg-field">
+                          <label>Microrganismo *</label>
+                          <select
+                            required
+                            value={isolado.microrganismo_id}
+                            onChange={(e) =>
+                              handleAlterarIsolado(index, { microrganismo_id: e.target.value })
+                            }
                           >
-                            <input
-                              type="checkbox"
-                              checked={m.sem_antibiograma_padronizado}
-                              onChange={(e) =>
-                                handleToggleSemAntibiograma(m.id, e.target.checked)
-                              }
-                            />
-                            Sem antibiograma padronizado (BrCAST)
-                          </label>
+                            <option value="">Selecione...</option>
+                            {microrganismos.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.nome}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                          {!m.sem_antibiograma_padronizado && (
-                            <>
-                              <ResultadosSIREditor
-                                value={resultados}
-                                onChange={(novos) =>
-                                  setResultadosPorIsolado((prev) => ({
-                                    ...prev,
-                                    [m.id]: novos,
-                                  }))
+                        <div className="mg-field">
+                          <label>Mecanismo de resistência</label>
+                          <select
+                            value={isolado.mecanismo_resistencia}
+                            onChange={(e) =>
+                              handleAlterarIsolado(index, {
+                                mecanismo_resistencia: e.target.value as MecanismoResistencia,
+                              })
+                            }
+                          >
+                            {MECANISMO_RESISTENCIA_OPCOES.map((m) => (
+                              <option key={m} value={m}>
+                                {MECANISMO_RESISTENCIA_LABELS[m]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          fontSize: 13,
+                          margin: "10px 0",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isolado.nao_realizado_tecnico}
+                          onChange={(e) => handleToggleNaoRealizado(index, e.target.checked)}
+                        />
+                        Não realizado tecnicamente (dispensa o antibiograma deste isolado)
+                      </label>
+
+                      {isolado.nao_realizado_tecnico ? (
+                        <div className="mg-field">
+                          <label>Motivo da dispensa *</label>
+                          <input
+                            required
+                            maxLength={500}
+                            value={isolado.motivo_dispensa_tsa}
+                            placeholder="Ex.: microrganismo sem protocolo BrCAST"
+                            onChange={(e) =>
+                              handleAlterarIsolado(index, { motivo_dispensa_tsa: e.target.value })
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <label style={{ fontSize: 13, fontWeight: 600 }}>Antibiograma</label>
+                          {isolado.antibiograma.length === 0 && (
+                            <p style={{ fontSize: 13, color: "var(--mg-cinza-600)", margin: "4px 0 8px 0" }}>
+                              Nenhum antimicrobiano adicionado ainda.
+                            </p>
+                          )}
+                          {isolado.antibiograma.map((linha, linhaIndex) => (
+                            <div
+                              key={linhaIndex}
+                              style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}
+                            >
+                              <select
+                                style={{ flex: 2 }}
+                                value={linha.antimicrobiano_id}
+                                onChange={(e) =>
+                                  handleAlterarAntibiograma(index, linhaIndex, {
+                                    antimicrobiano_id: e.target.value,
+                                  })
                                 }
-                              />
+                              >
+                                {antimicrobianos.map((a) => (
+                                  <option key={a.id} value={a.id}>
+                                    {a.nome}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                style={{ flex: 1 }}
+                                value={linha.resultado}
+                                onChange={(e) =>
+                                  handleAlterarAntibiograma(index, linhaIndex, {
+                                    resultado: e.target.value as ResultadoSIR,
+                                  })
+                                }
+                              >
+                                {RESULTADO_SIR_OPCOES.map((r) => (
+                                  <option key={r} value={r}>
+                                    {RESULTADO_SIR_LABELS[r]}
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 type="button"
-                                className="mg-btn mg-btn-secondary"
-                                style={{ marginTop: 4 }}
-                                disabled={salvandoAntibiogramaId === m.id}
-                                onClick={() => handleSalvarAntibiograma(m)}
+                                className="mg-btn mg-btn-outline"
+                                style={{ color: "var(--mg-erro)" }}
+                                onClick={() => handleRemoverAntibiograma(index, linhaIndex)}
                               >
-                                {salvoAntibiogramaId === m.id
-                                  ? "Salvo!"
-                                  : salvandoAntibiogramaId === m.id
-                                    ? "Salvando..."
-                                    : "Salvar antibiograma"}
+                                Remover
                               </button>
-                            </>
-                          )}
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="mg-btn mg-btn-outline"
+                            style={{ marginTop: 8 }}
+                            disabled={antimicrobianos.length === 0}
+                            onClick={() => handleAdicionarAntibiograma(index)}
+                          >
+                            + Adicionar antimicrobiano
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  ))}
+                </div>
               </>
             )}
 
