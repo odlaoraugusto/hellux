@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
+import { CarregandoBarras } from "../components/CarregandoBarras";
 import { useAuth } from "../context/AuthContext";
 import {
   atualizarUsuario,
@@ -153,7 +154,7 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
       )}
 
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
-      {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+      {!erro && carregando && <CarregandoBarras />}
       {!erro && !carregando && (
         <table className="mg-table">
           <thead>
@@ -238,7 +239,7 @@ function SecaoParametros({ souAdmin }: { souAdmin: boolean }) {
   return (
     <div className="mg-card">
       <h3 style={{ marginTop: 0 }}>Parâmetros do Sistema</h3>
-      {carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+      {carregando && <CarregandoBarras />}
       {!carregando && parametros.length === 0 && (
         <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
           Nenhum parâmetro semeado ainda (rode as migrações do Alembic).
@@ -627,7 +628,7 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
       </p>
 
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
-      {!erro && carregando && <p style={{ color: "var(--mg-cinza-600)" }}>Carregando...</p>}
+      {!erro && carregando && <CarregandoBarras />}
       {!erro && !carregando && logs.length === 0 && (
         <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>Nenhum log registrado ainda.</p>
       )}
