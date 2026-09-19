@@ -4,8 +4,17 @@ Testes do módulo Dashboard (Sprint 8).
 Fase 1 (fluxo de Exame unificado): reescrito sobre `/api/exames`. Os
 nomes dos campos de saída (`culturas_hoje`, `liberados_hoje`, etc.)
 continuam os mesmos por compatibilidade - só a fonte de dados mudou.
+Sprint do dashboard redesenhado: acrescenta `total_exames_mes`,
+`taxa_positividade_mes`, `por_tipo_cultura`, `por_material` e
+`por_setor`, todos calculados sobre o mês corrente.
 """
-from tests.helpers import criar_exame, criar_microrganismo
+from tests.helpers import (
+    criar_exame,
+    criar_material,
+    criar_microrganismo,
+    criar_setor,
+    criar_tipo_cultura,
+)
 
 
 def test_resumo_dashboard_estrutura_basica(authenticated_client):
@@ -19,6 +28,11 @@ def test_resumo_dashboard_estrutura_basica(authenticated_client):
         "liberados_hoje",
         "top_microrganismos",
         "alertas",
+        "total_exames_mes",
+        "taxa_positividade_mes",
+        "por_tipo_cultura",
+        "por_material",
+        "por_setor",
     ):
         assert campo in body
 
@@ -73,3 +87,88 @@ def test_alerta_de_exame_positivo_aguardando_finalizacao(authenticated_client):
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     tipos = [a["tipo"] for a in body["alertas"]]
     assert "info" in tipos
+
+
+def test_estatisticas_mensais_agregam_por_catalogo_e_status(authenticated_client):
+    """
+    Cenário com 2 tipos de cultura, 2 materiais e 2 setores (+ 1 exame
+    sem setor, pro balde "Não classificado"), misturando status
+    positivos e não positivos - tudo dentro do mês corrente (a fixture
+    `criar_exame` não permite escolher `data_coleta`/`created_at`, então
+    todo exame criado no teste já cai automaticamente no mês corrente).
+    """
+    material_hemo = criar_material(authenticated_client, nome="Hemocultura")
+    material_urina = criar_material(authenticated_client, nome="Urina")
+    tipo_geral = criar_tipo_cultura(authenticated_client, nome="Cultura Geral")
+    tipo_bk = criar_tipo_cultura(authenticated_client, nome="BK")
+    setor_uti = criar_setor(authenticated_client, "UTI")
+    setor_enfermaria = criar_setor(authenticated_client, "Enfermaria")
+
+    # 1) Cultura Geral + Hemocultura + UTI + POSITIVO
+    criar_exame(
+        authenticated_client,
+        prontuario="m1",
+        material_id=material_hemo["id"],
+        tipo_cultura_id=tipo_geral["id"],
+        setor_id=setor_uti["id"],
+        status="POSITIVO",
+    )
+    # 2) Cultura Geral + Urina + Enfermaria + NEGATIVO
+    criar_exame(
+        authenticated_client,
+        prontuario="m2",
+        material_id=material_urina["id"],
+        tipo_cultura_id=tipo_geral["id"],
+        setor_id=setor_enfermaria["id"],
+        status="NEGATIVO",
+    )
+    # 3) BK + Hemocultura + UTI + POSITIVO_PARCIAL
+    criar_exame(
+        authenticated_client,
+        prontuario="m3",
+        material_id=material_hemo["id"],
+        tipo_cultura_id=tipo_bk["id"],
+        setor_id=setor_uti["id"],
+        status="POSITIVO_PARCIAL",
+    )
+    # 4) BK + Urina + sem setor + NEGATIVO
+    criar_exame(
+        authenticated_client,
+        prontuario="m4",
+        material_id=material_urina["id"],
+        tipo_cultura_id=tipo_bk["id"],
+        status="NEGATIVO",
+    )
+    # 5) Cultura Geral + Hemocultura + Enfermaria + status padrão (AGUARDANDO_TRIAGEM)
+    criar_exame(
+        authenticated_client,
+        prontuario="m5",
+        material_id=material_hemo["id"],
+        tipo_cultura_id=tipo_geral["id"],
+        setor_id=setor_enfermaria["id"],
+    )
+
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+
+    assert body["total_exames_mes"] == 5
+    # 2 positivos (POSITIVO + POSITIVO_PARCIAL) em 5 exames = 40%.
+    assert body["taxa_positividade_mes"] == 40.0
+
+    por_tipo = {item["nome"]: item["quantidade"] for item in body["por_tipo_cultura"]}
+    assert por_tipo["Cultura Geral"] == 3
+    assert por_tipo["BK"] == 2
+
+    por_material = {item["nome"]: item["quantidade"] for item in body["por_material"]}
+    assert por_material["Hemocultura"] == 3
+    assert por_material["Urina"] == 2
+
+    por_setor = {item["nome"]: item["quantidade"] for item in body["por_setor"]}
+    assert por_setor["UTI"] == 2
+    assert por_setor["Enfermaria"] == 2
+    assert por_setor["Não classificado"] == 1
+
+
+def test_taxa_positividade_mes_zero_sem_exames(authenticated_client):
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    if body["total_exames_mes"] == 0:
+        assert body["taxa_positividade_mes"] == 0.0

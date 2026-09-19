@@ -21,16 +21,26 @@ from sqlalchemy.orm import Session
 from app.models.exame import (
     STATUS_EM_ANDAMENTO,
     STATUS_FINAIS,
+    STATUS_POSITIVO,
     Exame,
     ExameIsolado,
     StatusExameEnum,
 )
+from app.models.material import Material
 from app.models.microrganismo import Microrganismo
+from app.models.setor import Setor
+from app.models.tipo_cultura import TipoCultura
 from app.repositories.parametro_sistema_repository import ParametroSistemaRepository
 
 # Valor de fallback caso o parâmetro "prazo_solicitacao_dias" ainda não
 # tenha sido semeado no banco (ex.: testes que criam schema sem migração).
 PRAZO_PADRAO_DIAS_FALLBACK = 2
+
+# Rótulo usado quando o exame não tem setor (`Exame.setor_id` é
+# nullable) - mesmo espírito de `CCIHRepository.SETOR_NAO_INFORMADO`,
+# texto diferente porque aqui o campo é "não classificado" no gráfico
+# de distribuição mensal (não um filtro do módulo CCIH).
+SETOR_NAO_CLASSIFICADO = "Não classificado"
 
 
 class DashboardRepository:
@@ -39,6 +49,23 @@ class DashboardRepository:
 
     def _hoje_utc(self) -> date:
         return datetime.now(timezone.utc).date()
+
+    def _inicio_mes_utc(self) -> date:
+        return self._hoje_utc().replace(day=1)
+
+    def _filtro_mes_corrente(self, stmt):
+        """
+        Restringe `stmt` ao mês corrente (dia 1 até hoje), usando
+        `Exame.created_at` como referência temporal - mesmo campo já
+        usado por `contar_exames_criados_hoje`, pra manter os números
+        do card "hoje" e os agregados mensais consistentes entre si.
+        """
+        inicio_mes = self._inicio_mes_utc()
+        hoje = self._hoje_utc()
+        return stmt.where(
+            func.date(Exame.created_at) >= inicio_mes,
+            func.date(Exame.created_at) <= hoje,
+        )
 
     def contar_exames_criados_hoje(self) -> int:
         hoje = self._hoje_utc()
@@ -93,3 +120,59 @@ class DashboardRepository:
             Exame.status == StatusExameEnum.POSITIVO_PARCIAL,
         )
         return self.db.scalar(stmt) or 0
+
+    def contar_exames_mes(self) -> int:
+        stmt = self._filtro_mes_corrente(
+            select(func.count(Exame.id)).where(Exame.is_active.is_(True))
+        )
+        return self.db.scalar(stmt) or 0
+
+    def contar_exames_positivos_mes(self) -> int:
+        stmt = self._filtro_mes_corrente(
+            select(func.count(Exame.id)).where(
+                Exame.is_active.is_(True), Exame.status.in_(STATUS_POSITIVO)
+            )
+        )
+        return self.db.scalar(stmt) or 0
+
+    def exames_por_tipo_cultura_mes(self) -> list[tuple[str, int]]:
+        stmt = self._filtro_mes_corrente(
+            select(TipoCultura.nome, func.count(Exame.id))
+            .select_from(Exame)
+            .join(TipoCultura, TipoCultura.id == Exame.tipo_cultura_id)
+            .where(Exame.is_active.is_(True))
+            .group_by(TipoCultura.nome)
+            .order_by(func.count(Exame.id).desc())
+        )
+        return list(self.db.execute(stmt).all())
+
+    def exames_por_material_mes(self) -> list[tuple[str, int]]:
+        stmt = self._filtro_mes_corrente(
+            select(Material.nome, func.count(Exame.id))
+            .select_from(Exame)
+            .join(Material, Material.id == Exame.material_id)
+            .where(Exame.is_active.is_(True))
+            .group_by(Material.nome)
+            .order_by(func.count(Exame.id).desc())
+        )
+        return list(self.db.execute(stmt).all())
+
+    def exames_por_setor_mes(self) -> list[tuple[str, int]]:
+        """
+        Distribuição por setor do mês corrente, contando TODOS os
+        exames (qualquer status) - diferente de
+        `CCIHRepository.distribuicao_por_setor`, que só considera
+        exames positivos. `Exame.setor_id` é nullable, por isso o
+        `outerjoin` + `func.coalesce`, mesmo padrão de
+        `CCIHRepository.distribuicao_por_setor`.
+        """
+        nome_setor = func.coalesce(Setor.nome, SETOR_NAO_CLASSIFICADO)
+        stmt = self._filtro_mes_corrente(
+            select(nome_setor, func.count(Exame.id))
+            .select_from(Exame)
+            .outerjoin(Setor, Setor.id == Exame.setor_id)
+            .where(Exame.is_active.is_(True))
+            .group_by(nome_setor)
+            .order_by(func.count(Exame.id).desc())
+        )
+        return list(self.db.execute(stmt).all())
