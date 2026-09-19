@@ -14,6 +14,18 @@ body,
 body {
   font-family: var(--mg-font-family);
   background-color: var(--mg-fundo);
+  /*
+   * Mesma imagem de fundo do login (v1.2), só que aqui aparece bem sutil -
+   * um véu claro por cima (quase opaco) deixa só uma textura de fundo
+   * passando nas bordas/vazios ao redor dos cards, pra ter continuidade
+   * visual com o login sem comprometer a legibilidade de tabelas e
+   * formulários (os cards continuam brancos/opacos por cima, sem mudança).
+   */
+  background-image: linear-gradient(180deg, rgba(240, 247, 250, 0.95), rgba(240, 247, 250, 0.97)),
+    url("/login-bg.jpg");
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
   color: var(--mg-texto);
   -webkit-font-smoothing: antialiased;
 }
