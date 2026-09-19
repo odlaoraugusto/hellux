@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 from app.core.security import decodificar_access_token
 from app.core.tenant_context import set_tenant_context
 from app.db.session import get_db
+from app.models.tenant import Tenant
 from app.models.usuario import PerfilUsuarioEnum, Usuario
+from app.services.tenant_service import TenantService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -74,6 +76,25 @@ def get_current_user(
         raise CREDENCIAIS_INVALIDAS
 
     return usuario
+
+
+def get_current_tenant(
+    usuario: Usuario = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Tenant | None:
+    """
+    Devolve o Tenant completo do usuário autenticado (usado pelos
+    relatórios white-label, que precisam de mais do que o `tenant_id`
+    cru - nome fantasia, logo etc.).
+
+    Um SUPER_ADMIN não pertence a tenant nenhum (`usuario.tenant_id` é
+    `None`) - devolve `None` em vez de levantar erro; não é foco desta
+    fase consertar o fluxo de relatório do SUPER_ADMIN, os pontos que
+    dependem disso tratam `tenant is None` com um fallback genérico.
+    """
+    if usuario.tenant_id is None:
+        return None
+
+    return TenantService(db).obter(usuario.tenant_id)
 
 
 def require_perfil(*perfis_permitidos: PerfilUsuarioEnum):
