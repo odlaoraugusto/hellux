@@ -1,9 +1,16 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ContagemCatalogo } from "../types/dashboard";
+import { formatarNomeCatalogo } from "../utils/texto";
+
+export interface ItemRankeado {
+  nome: string;
+  quantidade: number;
+  /** Rótulo alternativo pro valor (ex.: "42%") - se ausente, mostra `quantidade`. */
+  rotuloValor?: string;
+}
 
 interface RankedListCardProps {
   titulo: string;
-  itens: ContagemCatalogo[];
+  itens: ItemRankeado[];
 }
 
 const MAX_ITENS = 5;
@@ -45,10 +52,15 @@ export default function RankedListCard({ titulo, itens }: RankedListCardProps) {
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 12, fill: "var(--mg-texto)" }}
+                tickFormatter={formatarNomeCatalogo}
               />
               <Tooltip
                 cursor={{ fill: "var(--mg-cinza-100)" }}
-                formatter={(value: number) => [value, "Exames"]}
+                labelFormatter={(label: string) => formatarNomeCatalogo(label)}
+                formatter={(value: number, _nome: string, item) => [
+                  (item.payload as ItemRankeado).rotuloValor ?? value,
+                  "Exames",
+                ]}
                 labelStyle={{ fontSize: 12, fontWeight: 600 }}
                 contentStyle={{
                   fontSize: 13,

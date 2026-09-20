@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { CarregandoBarras } from "../components/CarregandoBarras";
+import RankedListCard from "../components/RankedListCard";
 import { obterIndicadoresCCIH } from "../services/ccihService";
 import { listarSetores } from "../services/setorService";
 import { listarTiposCultura } from "../services/tipoCulturaService";
 import { IndicadoresCCIH } from "../types/ccih";
 import { Setor } from "../types/setor";
 import { TipoCultura } from "../types/tipoCultura";
+import { formatarNomeCatalogo } from "../utils/texto";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -15,29 +17,6 @@ function hojeISO() {
 function primeiroDiaDoMesISO() {
   const agora = new Date();
   return new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString().slice(0, 10);
-}
-
-function BarraPercentual({ percentual, cor }: { percentual: number; cor: string }) {
-  return (
-    <div
-      style={{
-        background: "var(--mg-cinza-100)",
-        borderRadius: 999,
-        height: 8,
-        width: "100%",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: `${Math.min(percentual, 100)}%`,
-          background: cor,
-          height: "100%",
-          borderRadius: 999,
-        }}
-      />
-    </div>
-  );
 }
 
 export default function CcihPage() {
@@ -131,7 +110,7 @@ export default function CcihPage() {
                   className={`mg-btn ${ativo ? "mg-btn-primary" : "mg-btn-outline"}`}
                   style={{ padding: "6px 12px", fontSize: 13 }}
                 >
-                  {t.nome}
+                  {formatarNomeCatalogo(t.nome)}
                 </button>
               );
             })}
@@ -172,7 +151,10 @@ export default function CcihPage() {
             {indicadores.filtro_tipos_cultura && indicadores.filtro_tipos_cultura.length > 0 && (
               <>
                 {" "}
-                · <strong>Tipo de cultura: {indicadores.filtro_tipos_cultura.join(", ")}</strong>
+                · <strong>
+                  Tipo de cultura:{" "}
+                  {indicadores.filtro_tipos_cultura.map(formatarNomeCatalogo).join(", ")}
+                </strong>
               </>
             )}
           </p>
@@ -197,48 +179,22 @@ export default function CcihPage() {
           </div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
-            <div className="mg-card" style={{ flex: 1, minWidth: 280 }}>
-              <h3 style={{ marginTop: 0 }}>Distribuição por Setor</h3>
-              {indicadores.distribuicao_por_setor.length === 0 ? (
-                <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>Sem dados no período.</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {indicadores.distribuicao_por_setor.map((s) => (
-                    <div key={s.setor}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                        <span>{s.setor}</span>
-                        <strong>{s.total_positivas}</strong>
-                      </div>
-                      <BarraPercentual
-                        percentual={
-                          (s.total_positivas / indicadores.total_culturas_positivas) * 100 || 0
-                        }
-                        cor="var(--mg-primaria)"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <RankedListCard
+              titulo="Distribuição por Setor"
+              itens={indicadores.distribuicao_por_setor.map((s) => ({
+                nome: s.setor,
+                quantidade: s.total_positivas,
+              }))}
+            />
 
-            <div className="mg-card" style={{ flex: 1, minWidth: 280 }}>
-              <h3 style={{ marginTop: 0 }}>Perfil Microbiológico</h3>
-              {indicadores.perfil_microbiologico.length === 0 ? (
-                <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>Sem dados no período.</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {indicadores.perfil_microbiologico.map((p) => (
-                    <div key={p.microrganismo}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                        <span>{p.microrganismo}</span>
-                        <strong>{p.percentual}%</strong>
-                      </div>
-                      <BarraPercentual percentual={p.percentual} cor="var(--mg-secundaria)" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <RankedListCard
+              titulo="Perfil Microbiológico"
+              itens={indicadores.perfil_microbiologico.map((p) => ({
+                nome: p.microrganismo,
+                quantidade: p.quantidade,
+                rotuloValor: `${p.percentual}%`,
+              }))}
+            />
           </div>
 
           <div className="mg-card">
