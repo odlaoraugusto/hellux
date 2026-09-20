@@ -15,6 +15,11 @@ export interface ContagemCatalogo {
   quantidade: number;
 }
 
+export interface ContagemDiaria {
+  data: string;
+  quantidade: number;
+}
+
 export interface ResumoDashboard {
   culturas_hoje: number;
   aguardando_atualizacao: number;
@@ -27,4 +32,5 @@ export interface ResumoDashboard {
   por_tipo_cultura: ContagemCatalogo[];
   por_material: ContagemCatalogo[];
   por_setor: ContagemCatalogo[];
+  tendencia_7_dias: ContagemDiaria[];
 }

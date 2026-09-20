@@ -1,6 +1,4 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import MainLayout from "../layouts/MainLayout";
 import { CarregandoBarras } from "../components/CarregandoBarras";
 import { atualizarExame, criarExame, obterExame } from "../services/exameService";
 import { listarSetores } from "../services/setorService";
@@ -15,6 +13,7 @@ import {
   ExameAntibiogramaIn,
   ExameCreate,
   ExameIsoladoIn,
+  ExameOut,
   ExameUpdate,
   MECANISMO_RESISTENCIA_LABELS,
   MECANISMO_RESISTENCIA_OPCOES,
@@ -81,10 +80,16 @@ function criarIsoladoVazio(): IsoladoEditavel {
   };
 }
 
-export default function ExameFormPage() {
-  const { id } = useParams();
+interface ExameFormPageProps {
+  exameId?: string;
+  onSalvo: (exame: ExameOut) => void;
+  onCancelar: () => void;
+  onRemover?: () => void;
+}
+
+export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover }: ExameFormPageProps) {
+  const id = exameId;
   const editando = Boolean(id);
-  const navigate = useNavigate();
 
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [isolados, setIsolados] = useState<IsoladoEditavel[]>([]);
@@ -311,8 +316,8 @@ export default function ExameFormPage() {
           observacoes: form.observacoes || null,
           isolados: isoladosPayload,
         };
-        await atualizarExame(id, payload);
-        navigate("/exames");
+        const atualizado = await atualizarExame(id, payload);
+        onSalvo(atualizado);
       } else {
         const payload: ExameCreate = {
           paciente_prontuario: form.paciente_prontuario,
@@ -328,7 +333,7 @@ export default function ExameFormPage() {
           isolados: isoladosPayload,
         };
         const criado = await criarExame(payload);
-        navigate(`/exames/${criado.id}/editar`);
+        onSalvo(criado);
       }
     } catch (err: unknown) {
       setErro(extrairMensagemErro(err, "Não foi possível salvar o exame."));
@@ -354,22 +359,22 @@ export default function ExameFormPage() {
   }
 
   return (
-    <MainLayout
-      titulo={editando ? "Editar Exame" : "Novo Exame"}
-      subtitulo="Pedido, resultado, isolados e antibiograma em uma única tela"
-    >
-      <div className="mg-card" style={{ maxWidth: 900 }}>
-        {carregando ? (
-          <CarregandoBarras />
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {erro && (
-              <p style={{ color: "var(--mg-erro)", fontSize: 14, marginTop: 0, marginBottom: 16 }}>
-                {erro}
-              </p>
-            )}
+    <div className="mg-card">
+      {carregando ? (
+        <CarregandoBarras />
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <h3 style={{ margin: "0 0 16px 0" }}>{editando ? "Editar Exame" : "Novo Exame"}</h3>
 
-            <h3 style={{ margin: "0 0 12px 0" }}>Exame</h3>
+          {erro && (
+            <p style={{ color: "var(--mg-erro)", fontSize: 14, marginTop: 0, marginBottom: 16 }}>
+              {erro}
+            </p>
+          )}
+
+          <h4 style={{ margin: "0 0 12px 0", fontWeight: 500, color: "var(--mg-cinza-600)" }}>
+            Dados do exame
+          </h4>
             <div className="mg-form-grid">
               <div className="mg-field">
                 <label>Prontuário *</label>
@@ -702,17 +707,22 @@ export default function ExameFormPage() {
               <button className="mg-btn mg-btn-primary" type="submit" disabled={salvando}>
                 {salvando ? "Salvando..." : "Salvar"}
               </button>
-              <button
-                type="button"
-                className="mg-btn mg-btn-outline"
-                onClick={() => navigate("/exames")}
-              >
+              <button type="button" className="mg-btn mg-btn-outline" onClick={onCancelar}>
                 Cancelar
               </button>
+              {editando && onRemover && (
+                <button
+                  type="button"
+                  className="mg-btn mg-btn-outline"
+                  style={{ color: "var(--mg-erro)", marginLeft: "auto" }}
+                  onClick={onRemover}
+                >
+                  Remover exame
+                </button>
+              )}
             </div>
-          </form>
-        )}
-      </div>
-    </MainLayout>
+        </form>
+      )}
+    </div>
   );
 }
