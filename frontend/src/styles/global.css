@@ -480,6 +480,19 @@ table.mg-table td {
   align-items: start;
 }
 
+/*
+ * `display` aqui precisa ficar na classe (não inline no JSX) - o
+ * breakpoint mobile abaixo depende de sobrescrever esse `display` com
+ * `!important`-like via especificidade de classe; um `style={{display:
+ * "flex"}}` inline no elemento sempre venceria a media query, deixando a
+ * coluna "presa" visível mesmo com `data-detalhe-ativo="true"`.
+ */
+.mg-exames-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .mg-exames-item {
   display: flex;
   align-items: center;

@@ -79,7 +79,7 @@ function ListaExames({
   }
 
   return (
-    <div className="mg-card mg-exames-lista">
+    <div className="mg-card">
       {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
       {!erro && carregando && <CarregandoBarras />}
 
@@ -304,7 +304,7 @@ export default function ExamesListPage() {
   return (
     <MainLayout titulo="Exames" subtitulo="Pedido, resultado, isolados e antibiograma em um só lugar">
       <div className="mg-exames-layout" data-detalhe-ativo={rotaFilhaAtiva ? "true" : "false"}>
-        <div className="mg-exames-lista" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="mg-exames-lista">
           <div className="mg-page-header" style={{ margin: 0 }}>
             <div style={{ display: "flex", gap: 8 }}>
               <button
