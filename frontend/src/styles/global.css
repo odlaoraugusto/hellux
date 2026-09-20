@@ -465,3 +465,51 @@ table.mg-table td {
     max-width: 420px;
   }
 }
+
+/*
+ * Layout mestre-detalhe de Exames: lista compacta à esquerda, painel de
+ * detalhe (form de criar/editar, ou vazio) à direita. No desktop as duas
+ * colunas ficam sempre lado a lado; abaixo de 1024px vira uma coluna só,
+ * alternando entre lista e detalhe via `data-detalhe-ativo` (aplicado pelo
+ * próprio ExamesListPage conforme a sub-rota ativa).
+ */
+.mg-exames-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 400px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.mg-exames-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--mg-radius-sm);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+
+.mg-exames-item:hover {
+  background: var(--mg-cinza-100);
+}
+
+.mg-exames-item.mg-exames-item-selecionado {
+  border-left-color: var(--mg-primaria);
+  background: var(--mg-cinza-100);
+}
+
+@media (max-width: 1024px) {
+  .mg-exames-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mg-exames-layout[data-detalhe-ativo="true"] .mg-exames-lista {
+    display: none;
+  }
+
+  .mg-exames-layout[data-detalhe-ativo="false"] .mg-exames-detalhe {
+    display: none;
+  }
+}

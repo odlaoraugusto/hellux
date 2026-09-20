@@ -82,6 +82,7 @@ export default function DashboardPage() {
                 rotulo: "Taxa de positividade",
                 valor: `${resumo.taxa_positividade_mes}%`,
               }}
+              serieTemporal={resumo.tendencia_7_dias}
             />
           </div>
 
