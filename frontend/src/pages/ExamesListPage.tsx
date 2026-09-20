@@ -30,7 +30,7 @@ interface ListaExamesProps {
   visao: Visao;
   selecionadoId?: string;
   onSelecionar: (exame: ExameOut) => void;
-  onLiberado: () => void;
+  onLiberado: (id: string) => void;
 }
 
 /** Lista compacta - cada exame é uma linha, com o fluxo "Liberar" inline. */
@@ -67,8 +67,10 @@ function ListaExames({
       // A lista de exames vive no componente pai (`ExamesListPage`) - sem
       // avisar ele pra recarregar, o badge de status desta linha ficaria
       // desatualizado (e ela não sumiria da aba "Em andamento") até o
-      // usuário trocar de aba/recarregar a página manualmente.
-      onLiberado();
+      // usuário trocar de aba/recarregar a página manualmente. Passa o id
+      // pra o pai também poder forçar o painel de detalhe a recarregar,
+      // caso esse mesmo exame esteja aberto nele (ver `painelRefreshKey`).
+      onLiberado(exame.id);
     } catch (err: unknown) {
       window.alert(extrairMensagemErro(err, "Não foi possível liberar o exame."));
     } finally {
@@ -230,6 +232,12 @@ export default function ExamesListPage() {
   const [total, setTotal] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  // Incrementado só quando o exame liberado pela lista é exatamente o que
+  // está aberto no painel de detalhe agora - força o `ExameFormPage`
+  // remontar e buscar os dados de novo (via `key`), pra não deixar o
+  // formulário com o status antigo em memória (um "Salvar" logo depois
+  // reverteria silenciosamente o status que acabou de ser liberado).
+  const [painelRefreshKey, setPainelRefreshKey] = useState(0);
 
   async function carregar() {
     setCarregando(true);
@@ -271,6 +279,13 @@ export default function ExamesListPage() {
 
   function handleCancelar() {
     navigate("/exames");
+  }
+
+  function handleLiberado(id: string) {
+    carregar();
+    if (id === idSelecionado) {
+      setPainelRefreshKey((k) => k + 1);
+    }
   }
 
   async function handleRemover(id: string) {
@@ -318,7 +333,7 @@ export default function ExamesListPage() {
             visao={visao}
             selecionadoId={idSelecionado}
             onSelecionar={(exame) => navigate(`/exames/${exame.id}/editar`)}
-            onLiberado={carregar}
+            onLiberado={handleLiberado}
           />
         </div>
 
@@ -332,6 +347,7 @@ export default function ExamesListPage() {
             path=":id/editar"
             element={
               <PainelEditar
+                key={`${idSelecionado}-${painelRefreshKey}`}
                 onSalvo={handleSalvarEdicao}
                 onCancelar={handleCancelar}
                 onRemover={handleRemover}
