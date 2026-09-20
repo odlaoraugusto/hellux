@@ -7,7 +7,11 @@ continuam os mesmos por compatibilidade - só a fonte de dados mudou.
 Sprint do dashboard redesenhado: acrescenta `total_exames_mes`,
 `taxa_positividade_mes`, `por_tipo_cultura`, `por_material` e
 `por_setor`, todos calculados sobre o mês corrente.
+Sparkline de tendência: acrescenta `tendencia_7_dias`, contagem de
+exames criados por dia nos últimos 7 dias corridos (incluindo hoje).
 """
+from datetime import date, timedelta
+
 from tests.helpers import (
     criar_exame,
     criar_material,
@@ -33,6 +37,7 @@ def test_resumo_dashboard_estrutura_basica(authenticated_client):
         "por_tipo_cultura",
         "por_material",
         "por_setor",
+        "tendencia_7_dias",
     ):
         assert campo in body
 
@@ -172,3 +177,35 @@ def test_taxa_positividade_mes_zero_sem_exames(authenticated_client):
     body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
     if body["total_exames_mes"] == 0:
         assert body["taxa_positividade_mes"] == 0.0
+
+
+def test_tendencia_7_dias_sempre_tem_sete_pontos_mesmo_sem_exames(authenticated_client):
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    tendencia = body["tendencia_7_dias"]
+
+    assert len(tendencia) == 7
+    assert all(item["quantidade"] == 0 for item in tendencia)
+
+
+def test_tendencia_7_dias_conta_exames_de_hoje_e_vem_ordenada(authenticated_client):
+    """
+    A fixture `criar_exame` não permite escolher `created_at`, então só
+    dá pra controlar com certeza a contagem do dia de hoje - os exames
+    de outros testes não vazam pra cá porque a fixture `db_session`
+    recria o schema do zero a cada teste (ver `tests/conftest.py`).
+    """
+    criar_exame(authenticated_client, prontuario="t1", status="NEGATIVO")
+    criar_exame(authenticated_client, prontuario="t2", status="NEGATIVO")
+
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    tendencia = body["tendencia_7_dias"]
+
+    assert len(tendencia) == 7
+
+    datas = [date.fromisoformat(item["data"]) for item in tendencia]
+    assert datas == sorted(datas)
+    assert datas[-1] == date.today()
+    assert datas[0] == date.today() - timedelta(days=6)
+
+    hoje = tendencia[-1]
+    assert hoje["quantidade"] == 2

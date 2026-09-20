@@ -1,6 +1,8 @@
 """
 Schema de saída do Dashboard.
 """
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -23,6 +25,15 @@ class ContagemCatalogoOut(BaseModel):
     quantidade: int
 
 
+class ContagemDiariaOut(BaseModel):
+    """Contagem de exames criados em um dia específico - usado no
+    sparkline de tendência dos últimos 7 dias do card "Total de
+    culturas no mês"."""
+
+    data: date
+    quantidade: int
+
+
 class ResumoDashboardOut(BaseModel):
     culturas_hoje: int
     aguardando_atualizacao: int
@@ -35,3 +46,4 @@ class ResumoDashboardOut(BaseModel):
     por_tipo_cultura: list[ContagemCatalogoOut]
     por_material: list[ContagemCatalogoOut]
     por_setor: list[ContagemCatalogoOut]
+    tendencia_7_dias: list[ContagemDiariaOut]

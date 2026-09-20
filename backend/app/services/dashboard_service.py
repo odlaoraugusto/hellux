@@ -22,6 +22,7 @@ from app.repositories.dashboard_repository import DashboardRepository
 from app.schemas.dashboard import (
     AlertaOut,
     ContagemCatalogoOut,
+    ContagemDiariaOut,
     ResumoDashboardOut,
     TopMicrorganismoOut,
 )
@@ -59,6 +60,10 @@ class DashboardService:
         por_setor = [
             ContagemCatalogoOut(nome=nome, quantidade=quantidade)
             for nome, quantidade in self.repository.exames_por_setor_mes()
+        ]
+        tendencia_7_dias = [
+            ContagemDiariaOut(data=dia, quantidade=quantidade)
+            for dia, quantidade in self.repository.exames_por_dia(7)
         ]
 
         alertas: list[AlertaOut] = []
@@ -109,4 +114,5 @@ class DashboardService:
             por_tipo_cultura=por_tipo_cultura,
             por_material=por_material,
             por_setor=por_setor,
+            tendencia_7_dias=tendencia_7_dias,
         )

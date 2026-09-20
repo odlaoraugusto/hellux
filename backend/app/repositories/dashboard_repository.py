@@ -157,6 +157,48 @@ class DashboardRepository:
         )
         return list(self.db.execute(stmt).all())
 
+    def exames_por_dia(self, dias: int = 7) -> list[tuple[date, int]]:
+        """
+        Contagem de exames criados por dia, nos últimos `dias` dias
+        corridos (incluindo hoje) - usado no sparkline de tendência do
+        dashboard. Mesmo campo `Exame.created_at` de `contar_exames_criados_hoje`.
+
+        A agregação em si (`GROUP BY func.date(...)`) fica a cargo do
+        banco, mas o preenchimento dos dias sem exame (`0`) é feito em
+        Python: no SQLite (usado nos testes) `func.date()` devolve uma
+        string, já no Postgres devolve um `date` - normalizamos para
+        `date` antes de montar o dicionário, daí iteramos os `dias` dias
+        em ordem cronológica crescente usando `.get(dia, 0)` pra garantir
+        que a lista final sempre tenha exatamente `dias` pontos, sem
+        "buracos" que distorceriam o espaçamento do gráfico de linha.
+        """
+        hoje = self._hoje_utc()
+        inicio = hoje - timedelta(days=dias - 1)
+        dia_col = func.date(Exame.created_at)
+        stmt = (
+            select(dia_col, func.count(Exame.id))
+            .where(
+                Exame.is_active.is_(True),
+                dia_col >= inicio,
+                dia_col <= hoje,
+            )
+            .group_by(dia_col)
+        )
+
+        contagem_por_dia: dict[date, int] = {}
+        for dia_bruto, quantidade in self.db.execute(stmt).all():
+            dia = (
+                datetime.strptime(dia_bruto, "%Y-%m-%d").date()
+                if isinstance(dia_bruto, str)
+                else dia_bruto
+            )
+            contagem_por_dia[dia] = quantidade
+
+        return [
+            (inicio + timedelta(days=offset), contagem_por_dia.get(inicio + timedelta(days=offset), 0))
+            for offset in range(dias)
+        ]
+
     def exames_por_setor_mes(self) -> list[tuple[str, int]]:
         """
         Distribuição por setor do mês corrente, contando TODOS os
