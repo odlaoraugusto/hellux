@@ -544,3 +544,22 @@ table.mg-table td {
     display: none;
   }
 }
+
+/*
+ * Painel de SUPER_ADMIN - tela própria, fora do mg-app-shell (sem
+ * sidebar/topbar do hospital), usada só pra gerenciar tenants.
+ */
+.mg-superadmin-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mg-superadmin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--mg-branco);
+  border-bottom: 1px solid var(--mg-cinza-200);
+}
