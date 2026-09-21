@@ -75,7 +75,13 @@ class ExameService:
         prazo_dias = self.parametro_repository.get_valor_int(
             "prazo_solicitacao_dias", PRAZO_PADRAO_DIAS_FALLBACK
         )
-        return date.today() + timedelta(days=prazo_dias)
+        # UTC, não `date.today()` (local) - `previsao_liberacao` é depois
+        # comparada contra `DashboardRepository._hoje_utc()` pra calcular
+        # "prazo vencido"; misturar as duas referências fazia o prazo
+        # ficar um dia adiantado/atrasado sempre que o horário local e o
+        # UTC caem em dias de calendário diferentes (a maior parte do dia,
+        # em qualquer fuso a oeste de UTC).
+        return datetime.now(timezone.utc).date() + timedelta(days=prazo_dias)
 
     def criar(self, dados: ExameCreate) -> Exame:
         paciente = self._resolver_paciente(dados.paciente_prontuario, dados.paciente_nome)

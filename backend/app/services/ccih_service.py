@@ -12,7 +12,7 @@ filtrado continua vindo na resposta em `filtro_setor`, para não quebrar
 o contrato da API.
 """
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,17 @@ from app.schemas.ccih import (
 
 def _primeiro_dia_do_mes(referencia: date) -> date:
     return referencia.replace(day=1)
+
+
+def _hoje_utc() -> date:
+    # UTC, não `date.today()` (local) - `Exame.data_coleta` é gravada com
+    # `datetime.now(timezone.utc)` (ver ExameService), então o período
+    # "mês corrente" default precisa usar a mesma referência de fuso, ou
+    # exames lançados nas ~horas em que o dia de calendário local ainda
+    # não virou (mas o UTC já virou) somem dos indicadores por ficarem
+    # fora do intervalo. Mesmo padrão já usado em
+    # DashboardRepository._hoje_utc().
+    return datetime.now(timezone.utc).date()
 
 
 class CCIHService:
@@ -87,7 +98,7 @@ class CCIHService:
         S/I/R. Endpoint aditivo, não substitui `indicadores()` (ver
         docstring de `CCIHRepository.matriz_sensibilidade`).
         """
-        hoje = date.today()
+        hoje = _hoje_utc()
         inicio = data_inicio or _primeiro_dia_do_mes(hoje)
         fim = data_fim or hoje
 
@@ -140,7 +151,7 @@ class CCIHService:
         setor_id: uuid.UUID | None,
         tipo_cultura_ids: list[uuid.UUID] | None,
     ) -> IndicadoresCCIHOut:
-        hoje = date.today()
+        hoje = _hoje_utc()
         inicio = data_inicio or _primeiro_dia_do_mes(hoje)
         fim = data_fim or hoje
 

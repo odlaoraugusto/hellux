@@ -10,7 +10,7 @@ Sprint do dashboard redesenhado: acrescenta `total_exames_mes`,
 Sparkline de tendência: acrescenta `tendencia_7_dias`, contagem de
 exames criados por dia nos últimos 7 dias corridos (incluindo hoje).
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from tests.helpers import (
     criar_exame,
@@ -204,8 +204,14 @@ def test_tendencia_7_dias_conta_exames_de_hoje_e_vem_ordenada(authenticated_clie
 
     datas = [date.fromisoformat(item["data"]) for item in tendencia]
     assert datas == sorted(datas)
-    assert datas[-1] == date.today()
-    assert datas[0] == date.today() - timedelta(days=6)
+    # UTC, não `date.today()` (local) - a API calcula "hoje" em UTC (ver
+    # DashboardRepository._hoje_utc()), já que `Exame.created_at` é
+    # gravado em UTC. Perto da virada de dia em fusos a oeste de UTC, o
+    # dia de calendário local e o UTC divergem - comparar contra o local
+    # fazia esse teste falhar sem nenhum bug real na API.
+    hoje_utc = datetime.now(timezone.utc).date()
+    assert datas[-1] == hoje_utc
+    assert datas[0] == hoje_utc - timedelta(days=6)
 
     hoje = tendencia[-1]
     assert hoje["quantidade"] == 2
