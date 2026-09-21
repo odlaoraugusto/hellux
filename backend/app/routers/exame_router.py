@@ -17,7 +17,9 @@ from app.core.response import success_response
 from app.db.session import get_db
 from app.models.exame import StatusExameEnum
 from app.schemas.exame import ExameCreate, ExameOut, ExameUpdate
+from app.schemas.laudo_import import LaudoImportarIn
 from app.services.exame_service import ExameService
+from app.services.laudo_import_service import LaudoImportService
 
 router = APIRouter(prefix="/api/exames", tags=["Exames"], dependencies=[Depends(get_current_user)])
 
@@ -68,6 +70,17 @@ def atualizar_exame(exame_id: uuid.UUID, dados: ExameUpdate, db: Session = Depen
     return success_response(
         ExameOut.model_validate(exame).model_dump(mode="json"),
         message="Exame atualizado com sucesso.",
+    )
+
+
+@router.post("/{exame_id}/importar-laudo")
+def importar_laudo(exame_id: uuid.UUID, dados: LaudoImportarIn, db: Session = Depends(get_db)):
+    service = ExameService(db)
+    exame = service.obter(exame_id)
+    laudo_service = LaudoImportService(db)
+    resultado = laudo_service.importar(exame, dados.texto)
+    return success_response(
+        resultado.model_dump(mode="json"), message="Laudo processado com sucesso."
     )
 
 
