@@ -93,7 +93,11 @@ def bootstrap_tenant(
         db.add(tipo_cultura_padrao)
 
         db.commit()
-        db.refresh(tenant)
+        # Mesmo problema documentado em `bootstrap_super_admin` logo abaixo -
+        # o `SET LOCAL app.current_tenant_id` acima não sobrevive ao
+        # commit, e o `refresh(admin)` precisa dele (RLS de `usuarios`).
+        db.refresh(tenant)  # tenants não tem RLS - este não precisa do contexto
+        _set_local_tenant(db, tenant.id)
         db.refresh(admin)
         return tenant, admin
     except Exception:
@@ -117,6 +121,16 @@ def bootstrap_super_admin(nome: str, login: str, senha: str) -> Usuario:
         )
         db.add(super_admin)
         db.commit()
+        # `db.commit()` encerra a transação e descarta o `SET LOCAL` acima
+        # (é por-transação, não por-sessão) - sem reaplicar, o SELECT
+        # implícito do `refresh()` roda sem `app.is_super_admin`, a policy
+        # de RLS de `usuarios` não bate com nenhuma linha, e o SQLAlchemy
+        # levanta `InvalidRequestError` (linha "sumiu" do ponto de vista
+        # da query). Mesmo problema documentado em `app/db/session.py`
+        # (listener `after_begin`) - aqui não dá pra usar o listener
+        # porque o `SET LOCAL` é feito via SQL cru, não via
+        # `session.info`, então reaplicamos manualmente.
+        _set_local_tenant(db, tenant_id=None, is_super_admin=True)
         db.refresh(super_admin)
         return super_admin
     except Exception:
