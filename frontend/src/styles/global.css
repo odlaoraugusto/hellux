@@ -282,6 +282,14 @@ table.mg-table td {
   border-bottom: 1px solid var(--mg-cinza-100);
 }
 
+/* Linha de tabela clicável (ex.: paciente com histórico expansível) -
+   só hover, sem mexer em display (uma `<tr>` precisa continuar
+   `table-row`; `.mg-exames-item` usa `display:flex`, feito pra lista de
+   cards div-based do mestre-detalhe de Exames, não pra `<tr>`). */
+.mg-table-row-clicavel:hover {
+  background: var(--mg-cinza-100);
+}
+
 .mg-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

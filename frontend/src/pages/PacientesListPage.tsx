@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
@@ -137,10 +137,9 @@ export default function PacientesListPage() {
                   const expandido = expandidoId === p.id;
                   const historico = historicoPorPaciente[p.id];
                   return (
-                    <>
+                    <Fragment key={p.id}>
                       <tr
-                        key={p.id}
-                        className="mg-exames-item"
+                        className="mg-table-row-clicavel"
                         style={{ cursor: "pointer" }}
                         onClick={() => alternarExpandir(p)}
                       >
@@ -221,7 +220,7 @@ export default function PacientesListPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

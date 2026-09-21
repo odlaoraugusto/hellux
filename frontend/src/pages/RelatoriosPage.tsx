@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { api, extrairMensagemErroDownload } from "../services/api";
 import { listarSetores } from "../services/setorService";
+import { Setor } from "../types/setor";
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10);
@@ -74,15 +75,15 @@ function RelatorioCard({ titulo, descricao, botaoLabel, onBaixar }: RelatorioCar
 export default function RelatoriosPage() {
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
   const [dataFim, setDataFim] = useState(hojeISO());
-  const [setor, setSetor] = useState("");
-  const [setoresCatalogo, setSetoresCatalogo] = useState<string[]>([]);
+  const [setorId, setSetorId] = useState("");
+  const [setoresCatalogo, setSetoresCatalogo] = useState<Setor[]>([]);
   const [baixandoCcih, setBaixandoCcih] = useState(false);
   const [erroCcih, setErroCcih] = useState<string | null>(null);
   const [baixandoCcihVigilancia, setBaixandoCcihVigilancia] = useState(false);
   const [erroCcihVigilancia, setErroCcihVigilancia] = useState<string | null>(null);
 
   useEffect(() => {
-    listarSetores().then((res) => setSetoresCatalogo(res.items.map((s) => s.nome)));
+    listarSetores().then((res) => setSetoresCatalogo(res.items));
   }, []);
 
   async function handleBaixarCcih() {
@@ -90,7 +91,7 @@ export default function RelatoriosPage() {
     setErroCcih(null);
     try {
       const params: Record<string, string> = { data_inicio: dataInicio, data_fim: dataFim };
-      if (setor) params.origem = setor;
+      if (setorId) params.setor_id = setorId;
       await baixarArquivo("/api/relatorios/ccih.pdf", "hellux_relatorio_ccih.pdf", params);
     } catch (err: unknown) {
       setErroCcih(await extrairMensagemErroDownload(err));
@@ -104,7 +105,7 @@ export default function RelatoriosPage() {
     setErroCcihVigilancia(null);
     try {
       const params: Record<string, string> = { data_inicio: dataInicio, data_fim: dataFim };
-      if (setor) params.origem = setor;
+      if (setorId) params.setor_id = setorId;
       await baixarArquivo(
         "/api/relatorios/ccih-vigilancia.pdf",
         "hellux_relatorio_ccih_vigilancia.pdf",
@@ -122,27 +123,25 @@ export default function RelatoriosPage() {
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
         <RelatorioCard
           titulo="Pacientes (Excel)"
-          descricao="Exporta a lista completa de pacientes cadastrados, com setor, leito e status de internação."
+          descricao="Exporta a lista completa de pacientes cadastrados, com setor e leito."
           botaoLabel="Baixar .xlsx"
           onBaixar={() =>
             baixarArquivo("/api/relatorios/pacientes.xlsx", "hellux_pacientes.xlsx")
           }
         />
         <RelatorioCard
-          titulo="Solicitações (Excel)"
-          descricao="Exporta todas as solicitações registradas, com material, origem, prioridade e status."
+          titulo="Exames (Excel)"
+          descricao="Exporta todos os exames registrados, com setor, tipo de cultura, material e status."
           botaoLabel="Baixar .xlsx"
-          onBaixar={() =>
-            baixarArquivo("/api/relatorios/solicitacoes.xlsx", "hellux_solicitacoes.xlsx")
-          }
+          onBaixar={() => baixarArquivo("/api/relatorios/exames.xlsx", "hellux_exames.xlsx")}
         />
         <RelatorioCard
           titulo="Resultados Parciais (Excel)"
-          descricao="Culturas ainda em andamento (não liberadas), com previsão de liberação e o que está pendente em cada uma."
+          descricao="Exames ainda em andamento (não liberados), com previsão de liberação e o que está pendente em cada um."
           botaoLabel="Baixar .xlsx"
           onBaixar={() =>
             baixarArquivo(
-              "/api/relatorios/culturas-parciais.xlsx",
+              "/api/relatorios/exames-parciais.xlsx",
               "hellux_resultados_parciais.xlsx"
             )
           }
@@ -168,11 +167,11 @@ export default function RelatoriosPage() {
           </div>
           <div className="mg-field" style={{ gridColumn: "1 / -1" }}>
             <label>Setor</label>
-            <select value={setor} onChange={(e) => setSetor(e.target.value)}>
+            <select value={setorId} onChange={(e) => setSetorId(e.target.value)}>
               <option value="">Todos os setores</option>
-              {setoresCatalogo.map((nome) => (
-                <option key={nome} value={nome}>
-                  {nome}
+              {setoresCatalogo.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
                 </option>
               ))}
             </select>
