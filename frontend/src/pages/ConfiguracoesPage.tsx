@@ -153,7 +153,7 @@ function SecaoUsuarios({ souAdmin }: { souAdmin: boolean }) {
         </form>
       )}
 
-      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
+      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erro}</p>}
       {!erro && carregando && <CarregandoBarras />}
       {!erro && !carregando && (
         <table className="mg-table">
@@ -241,7 +241,7 @@ function SecaoParametros({ souAdmin }: { souAdmin: boolean }) {
       <h3 style={{ marginTop: 0 }}>Parâmetros do Sistema</h3>
       {carregando && <CarregandoBarras />}
       {!carregando && parametros.length === 0 && (
-        <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+        <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>
           Nenhum parâmetro semeado ainda (rode as migrações do Alembic).
         </p>
       )}
@@ -258,8 +258,8 @@ function SecaoParametros({ souAdmin }: { souAdmin: boolean }) {
             }}
           >
             <div style={{ flex: 1 }}>
-              <strong style={{ fontSize: 14 }}>{p.chave}</strong>
-              <p style={{ margin: "2px 0 0 0", fontSize: 13, color: "var(--mg-cinza-600)" }}>
+              <strong style={{ fontSize: 13 }}>{p.chave}</strong>
+              <p style={{ margin: "2px 0 0 0", fontSize: 12, color: "var(--mg-cinza-600)" }}>
                 {p.descricao}
               </p>
             </div>
@@ -388,13 +388,13 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
           {microrganismos.map((m) => (
             <div
               key={m.id}
-              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}
             >
               <span>{m.nome}</span>
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
-                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  style={{ padding: "2px 6px", fontSize: 11, color: "var(--mg-erro)" }}
                   onClick={() => handleRemoverMicro(m)}
                 >
                   Remover
@@ -424,13 +424,13 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
           {antimicrobianos.map((a) => (
             <div
               key={a.id}
-              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}
             >
               <span>{a.nome}</span>
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
-                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  style={{ padding: "2px 6px", fontSize: 11, color: "var(--mg-erro)" }}
                   onClick={() => handleRemoverAnti(a)}
                 >
                   Remover
@@ -456,7 +456,7 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
 
       <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
         <h3 style={{ marginTop: 0 }}>Setores</h3>
-        <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+        <p style={{ marginTop: -6, fontSize: 11, color: "var(--mg-cinza-400)" }}>
           Usado para padronizar o campo "Setor" dos Exames. O macro-grupo agrupa setores
           (ex.: "UTI", "Enfermaria") pra não fragmentar a Matriz de Sensibilidade CCIH.
         </p>
@@ -464,12 +464,12 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
           {setores.map((s) => (
             <div
               key={s.id}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 13 }}
             >
               <span>
                 {s.nome}
                 {s.macro_grupo && (
-                  <span style={{ marginLeft: 6, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+                  <span style={{ marginLeft: 6, fontSize: 11, color: "var(--mg-cinza-400)" }}>
                     ({s.macro_grupo})
                   </span>
                 )}
@@ -477,7 +477,7 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
-                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  style={{ padding: "2px 6px", fontSize: 11, color: "var(--mg-erro)" }}
                   onClick={() => handleRemoverSetor(s)}
                 >
                   Remover
@@ -509,20 +509,20 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
 
       <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
         <h3 style={{ marginTop: 0 }}>Materiais</h3>
-        <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+        <p style={{ marginTop: -6, fontSize: 11, color: "var(--mg-cinza-400)" }}>
           Usado para padronizar o campo "Material" dos Exames.
         </p>
         <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 12 }}>
           {materiais.map((m) => (
             <div
               key={m.id}
-              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}
             >
               <span>{m.nome}</span>
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
-                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  style={{ padding: "2px 6px", fontSize: 11, color: "var(--mg-erro)" }}
                   onClick={() => handleRemoverMaterial(m)}
                 >
                   Remover
@@ -548,20 +548,20 @@ function SecaoCatalogos({ souAdmin }: { souAdmin: boolean }) {
 
       <div className="mg-card" style={{ flex: 1, minWidth: 300 }}>
         <h3 style={{ marginTop: 0 }}>Tipos de Cultura</h3>
-        <p style={{ marginTop: -8, fontSize: 12, color: "var(--mg-cinza-400)" }}>
+        <p style={{ marginTop: -6, fontSize: 11, color: "var(--mg-cinza-400)" }}>
           Usado para padronizar o campo "Tipo de Cultura" dos Exames.
         </p>
         <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 12 }}>
           {tiposCultura.map((t) => (
             <div
               key={t.id}
-              style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}
+              style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}
             >
               <span>{t.nome}</span>
               {souAdmin && (
                 <button
                   className="mg-btn mg-btn-outline"
-                  style={{ padding: "2px 8px", fontSize: 12, color: "var(--mg-erro)" }}
+                  style={{ padding: "2px 6px", fontSize: 11, color: "var(--mg-erro)" }}
                   onClick={() => handleRemoverTipoCultura(t)}
                 >
                   Remover
@@ -613,7 +613,7 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
   if (!souAdmin) {
     return (
       <div className="mg-card">
-        <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+        <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>
           Apenas usuários ADMIN podem visualizar os logs de auditoria.
         </p>
       </div>
@@ -623,14 +623,14 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
   return (
     <div className="mg-card">
       <h3 style={{ marginTop: 0 }}>Logs de Auditoria</h3>
-      <p style={{ color: "var(--mg-cinza-600)", fontSize: 13, marginTop: -8, marginBottom: 16 }}>
+      <p style={{ color: "var(--mg-cinza-600)", fontSize: 12, marginTop: -6, marginBottom: 14 }}>
         Toda ação de escrita (criar, editar, remover) fica registrada aqui automaticamente.
       </p>
 
-      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
+      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erro}</p>}
       {!erro && carregando && <CarregandoBarras />}
       {!erro && !carregando && logs.length === 0 && (
-        <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>Nenhum log registrado ainda.</p>
+        <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>Nenhum log registrado ainda.</p>
       )}
 
       {!erro && !carregando && logs.length > 0 && (
@@ -654,7 +654,7 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
                   <td>
                     <span className="mg-badge mg-badge-info">{log.metodo}</span>
                   </td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{log.caminho}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 11 }}>{log.caminho}</td>
                   <td>
                     <span
                       className={`mg-badge ${
@@ -673,7 +673,7 @@ function SecaoAuditoria({ souAdmin }: { souAdmin: boolean }) {
               ))}
             </tbody>
           </table>
-          <p style={{ marginTop: 14, fontSize: 13, color: "var(--mg-cinza-600)" }}>
+          <p style={{ marginTop: 12, fontSize: 12, color: "var(--mg-cinza-600)" }}>
             {total} registro{total !== 1 ? "s" : ""} no total (exibindo os mais recentes)
           </p>
         </>
@@ -709,7 +709,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {!souAdmin && (
-        <p style={{ fontSize: 13, color: "var(--mg-cinza-600)", marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: "var(--mg-cinza-600)", marginBottom: 14 }}>
           Você está vendo em modo somente leitura. Apenas usuários ADMIN podem alterar
           usuários, parâmetros e catálogos.
         </p>

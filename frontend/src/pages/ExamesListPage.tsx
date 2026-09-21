@@ -80,7 +80,7 @@ function ListaExames({
 
   return (
     <div className="mg-card">
-      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
+      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erro}</p>}
       {!erro && carregando && <CarregandoBarras />}
 
       {!erro && !carregando && exames.length === 0 && (
@@ -105,13 +105,13 @@ function ListaExames({
                   onClick={liberando ? undefined : () => onSelecionar(exame)}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 14 }}>
+                    <p style={{ margin: 0, fontSize: 13 }}>
                       <strong>{exame.paciente?.nome ?? "—"}</strong>{" "}
-                      <span style={{ color: "var(--mg-cinza-600)", fontSize: 12 }}>
+                      <span style={{ color: "var(--mg-cinza-600)", fontSize: 11 }}>
                         · #{exame.paciente?.prontuario ?? "—"}
                       </span>
                     </p>
-                    <p style={{ margin: "2px 0 0 0", fontSize: 12, color: "var(--mg-cinza-600)" }}>
+                    <p style={{ margin: "2px 0 0 0", fontSize: 11, color: "var(--mg-cinza-600)" }}>
                       {formatarNomeCatalogo(exame.tipo_cultura?.nome ?? "—")} ·{" "}
                       {formatarNomeCatalogo(exame.material?.nome ?? "—")}
                     </p>
@@ -152,7 +152,7 @@ function ListaExames({
                       {STATUS_EM_ANDAMENTO.includes(exame.status) && (
                         <button
                           className="mg-btn mg-btn-secondary"
-                          style={{ padding: "2px 10px", fontSize: 12 }}
+                          style={{ padding: "2px 8px", fontSize: 11 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             abrirLiberar(exame);
@@ -167,7 +167,7 @@ function ListaExames({
               );
             })}
           </div>
-          <p style={{ marginTop: 14, fontSize: 13, color: "var(--mg-cinza-600)" }}>
+          <p style={{ marginTop: 12, fontSize: 12, color: "var(--mg-cinza-600)" }}>
             {total} exame{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}
           </p>
         </>
@@ -181,7 +181,7 @@ function PainelVazio() {
   return (
     <div
       className="mg-card mg-exames-detalhe"
-      style={{ textAlign: "center", color: "var(--mg-cinza-600)", padding: "48px 24px" }}
+      style={{ textAlign: "center", color: "var(--mg-cinza-600)", padding: "40px 20px" }}
     >
       <p style={{ margin: 0 }}>
         Selecione um exame na lista ao lado, ou clique em <strong>+ Novo Exame</strong>.

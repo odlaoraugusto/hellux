@@ -9,11 +9,11 @@ interface SectorGroupCardProps {
  */
 export default function SectorGroupCard({ nome, quantidade }: SectorGroupCardProps) {
   return (
-    <div className="mg-card" style={{ padding: 14 }}>
+    <div className="mg-card" style={{ padding: 12 }}>
       <p
         style={{
           margin: 0,
-          fontSize: 13,
+          fontSize: 12,
           color: "var(--mg-cinza-600)",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -23,7 +23,7 @@ export default function SectorGroupCard({ nome, quantidade }: SectorGroupCardPro
       >
         {nome}
       </p>
-      <h3 style={{ margin: "4px 0 0 0", fontSize: 22 }}>{quantidade}</h3>
+      <h3 style={{ margin: "4px 0 0 0", fontSize: 18 }}>{quantidade}</h3>
     </div>
   );
 }

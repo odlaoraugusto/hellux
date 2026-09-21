@@ -41,8 +41,8 @@ export default function StatCard({
       }}
     >
       <div style={{ flex: 1 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--mg-cinza-600)" }}>{titulo}</p>
-        <h2 style={{ margin: "6px 0 0 0", fontSize: 32 }}>{valor}</h2>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>{titulo}</p>
+        <h2 style={{ margin: "5px 0 0 0", fontSize: 26 }}>{valor}</h2>
 
         {serieTemporal && serieTemporal.length > 0 && (
           <div style={{ marginTop: 10 }}>
@@ -64,11 +64,11 @@ export default function StatCard({
       </div>
 
       {estatisticaSecundaria && (
-        <div style={{ textAlign: "right", borderLeft: "var(--mg-border-sutil)", paddingLeft: 16 }}>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>
+        <div style={{ textAlign: "right", borderLeft: "var(--mg-border-sutil)", paddingLeft: 14 }}>
+          <p style={{ margin: 0, fontSize: 11, color: "var(--mg-cinza-600)" }}>
             {estatisticaSecundaria.rotulo}
           </p>
-          <p style={{ margin: "4px 0 0 0", fontSize: 22, fontWeight: 600 }}>
+          <p style={{ margin: "4px 0 0 0", fontSize: 18, fontWeight: 600 }}>
             {estatisticaSecundaria.valor}
           </p>
         </div>

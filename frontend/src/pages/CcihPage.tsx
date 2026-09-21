@@ -97,7 +97,7 @@ export default function CcihPage() {
 
         {tiposCulturaCatalogo.length > 0 && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: "var(--mg-cinza-600)" }}>
+            <label style={{ fontSize: 12, fontWeight: 500, color: "var(--mg-cinza-600)" }}>
               Tipo de cultura
             </label>
             {tiposCulturaCatalogo.map((t) => {
@@ -108,7 +108,7 @@ export default function CcihPage() {
                   type="button"
                   onClick={() => alternarTipoCultura(t.id)}
                   className={`mg-btn ${ativo ? "mg-btn-primary" : "mg-btn-outline"}`}
-                  style={{ padding: "6px 12px", fontSize: 13 }}
+                  style={{ padding: "5px 10px", fontSize: 12 }}
                 >
                   {formatarNomeCatalogo(t.nome)}
                 </button>
@@ -121,8 +121,8 @@ export default function CcihPage() {
                 style={{
                   background: "none",
                   border: "none",
-                  padding: "6px 4px",
-                  fontSize: 13,
+                  padding: "5px 4px",
+                  fontSize: 12,
                   color: "var(--mg-cinza-600)",
                 }}
               >
@@ -133,12 +133,12 @@ export default function CcihPage() {
         )}
       </div>
 
-      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 14 }}>{erro}</p>}
+      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erro}</p>}
       {!erro && carregando && <CarregandoBarras />}
 
       {!erro && !carregando && indicadores && (
         <>
-          <p style={{ margin: "-8px 0 16px 0", fontSize: 13, color: "var(--mg-cinza-600)" }}>
+          <p style={{ margin: "-8px 0 16px 0", fontSize: 12, color: "var(--mg-cinza-600)" }}>
             Indicadores de{" "}
             {new Date(`${indicadores.periodo_inicio}T00:00:00`).toLocaleDateString("pt-BR")} até{" "}
             {new Date(`${indicadores.periodo_fim}T00:00:00`).toLocaleDateString("pt-BR")}
@@ -159,20 +159,20 @@ export default function CcihPage() {
             )}
           </p>
 
-          <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
             <div className="mg-card" style={{ flex: 1, minWidth: 160 }}>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--mg-cinza-600)" }}>Solicitações</p>
-              <h2 style={{ margin: "6px 0 0 0", fontSize: 28 }}>{indicadores.total_solicitacoes}</h2>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>Solicitações</p>
+              <h2 style={{ margin: "6px 0 0 0", fontSize: 22 }}>{indicadores.total_solicitacoes}</h2>
             </div>
             <div className="mg-card" style={{ flex: 1, minWidth: 160 }}>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--mg-cinza-600)" }}>Culturas Positivas</p>
-              <h2 style={{ margin: "6px 0 0 0", fontSize: 28, color: "var(--mg-erro)" }}>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>Culturas Positivas</p>
+              <h2 style={{ margin: "6px 0 0 0", fontSize: 22, color: "var(--mg-erro)" }}>
                 {indicadores.total_culturas_positivas}
               </h2>
             </div>
             <div className="mg-card" style={{ flex: 1, minWidth: 160 }}>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--mg-cinza-600)" }}>Taxa de Positividade</p>
-              <h2 style={{ margin: "6px 0 0 0", fontSize: 28, color: "var(--mg-alerta)" }}>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>Taxa de Positividade</p>
+              <h2 style={{ margin: "6px 0 0 0", fontSize: 22, color: "var(--mg-alerta)" }}>
                 {indicadores.taxa_positividade}%
               </h2>
             </div>
@@ -200,7 +200,7 @@ export default function CcihPage() {
           <div className="mg-card">
             <h3 style={{ marginTop: 0 }}>Mapa de Resistência</h3>
             {indicadores.taxa_resistencia.length === 0 ? (
-              <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+              <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>
                 Nenhum antibiograma liberado no período.
               </p>
             ) : (
