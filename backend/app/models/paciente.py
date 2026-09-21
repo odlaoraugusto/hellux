@@ -2,8 +2,8 @@
 Model da entidade Paciente.
 
 Módulo: Pacientes (Documento Mestre, seção 6).
-Campos cobrem cadastro, busca por prontuário, status de internação e
-histórico microbiológico associado (relacionamento futuro com Solicitações).
+Campos cobrem cadastro, busca por prontuário e histórico microbiológico
+associado (relacionamento futuro com Solicitações).
 """
 from datetime import date
 
@@ -27,13 +27,6 @@ class SexoEnum(str, enum.Enum):
     NAO_INFORMADO = "NAO_INFORMADO"
 
 
-class StatusInternacaoEnum(str, enum.Enum):
-    INTERNADO = "INTERNADO"
-    AMBULATORIAL = "AMBULATORIAL"
-    ALTA = "ALTA"
-    OBITO = "OBITO"
-
-
 class Paciente(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "pacientes"
     __table_args__ = (
@@ -48,10 +41,6 @@ class Paciente(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDelet
     )
     setor: Mapped[str | None] = mapped_column(String(100), nullable=True)
     leito: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    status_internacao: Mapped[StatusInternacaoEnum] = mapped_column(
-        Enum(StatusInternacaoEnum, name="status_internacao_enum"),
-        default=StatusInternacaoEnum.AMBULATORIAL,
-    )
     observacoes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     def __repr__(self) -> str:  # pragma: no cover

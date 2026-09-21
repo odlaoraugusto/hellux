@@ -17,7 +17,6 @@ const FORM_INICIAL: PacienteFormData = {
   sexo: "NAO_INFORMADO",
   setor: "",
   leito: "",
-  status_internacao: "AMBULATORIAL",
   observacoes: "",
 };
 
@@ -42,7 +41,6 @@ export default function PacienteFormPage() {
           sexo: p.sexo,
           setor: p.setor ?? "",
           leito: p.leito ?? "",
-          status_internacao: p.status_internacao,
           observacoes: p.observacoes ?? "",
         })
       )
@@ -157,24 +155,6 @@ export default function PacienteFormPage() {
                   value={form.leito ?? ""}
                   onChange={(e) => handleChange("leito", e.target.value)}
                 />
-              </div>
-
-              <div className="mg-field">
-                <label>Status de internação</label>
-                <select
-                  value={form.status_internacao}
-                  onChange={(e) =>
-                    handleChange(
-                      "status_internacao",
-                      e.target.value as PacienteFormData["status_internacao"]
-                    )
-                  }
-                >
-                  <option value="AMBULATORIAL">Ambulatorial</option>
-                  <option value="INTERNADO">Internado</option>
-                  <option value="ALTA">Alta</option>
-                  <option value="OBITO">Óbito</option>
-                </select>
               </div>
 
               <div className="mg-field" style={{ gridColumn: "1 / -1" }}>

@@ -166,7 +166,7 @@ class RelatorioService:
         self.exame_service = ExameService(db)
 
     def gerar_excel_pacientes(self, tenant: Tenant | None = None) -> bytes:
-        colunas = ["Prontuário", "Nome", "Setor", "Leito", "Status", "Cadastrado em"]
+        colunas = ["Prontuário", "Nome", "Setor", "Leito", "Cadastrado em"]
         wb = Workbook()
         ws = wb.active
         ws.title = "Pacientes"
@@ -181,7 +181,6 @@ class RelatorioService:
                     p.nome,
                     p.setor or "",
                     p.leito or "",
-                    p.status_internacao.value,
                     p.created_at.strftime("%d/%m/%Y %H:%M"),
                 ]
             )

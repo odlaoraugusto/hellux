@@ -1,7 +1,5 @@
 export type Sexo = "MASCULINO" | "FEMININO" | "NAO_INFORMADO";
 
-export type StatusInternacao = "INTERNADO" | "AMBULATORIAL" | "ALTA" | "OBITO";
-
 export interface Paciente {
   id: string;
   nome: string;
@@ -10,7 +8,6 @@ export interface Paciente {
   sexo: Sexo;
   setor: string | null;
   leito: string | null;
-  status_internacao: StatusInternacao;
   observacoes: string | null;
   is_active: boolean;
   created_at: string;
@@ -31,6 +28,5 @@ export interface PacienteFormData {
   sexo: Sexo;
   setor?: string | null;
   leito?: string | null;
-  status_internacao: StatusInternacao;
   observacoes?: string | null;
 }

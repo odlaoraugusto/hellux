@@ -6,7 +6,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.paciente import SexoEnum, StatusInternacaoEnum
+from app.models.paciente import SexoEnum
 
 
 class PacienteBase(BaseModel):
@@ -16,7 +16,6 @@ class PacienteBase(BaseModel):
     sexo: SexoEnum = SexoEnum.NAO_INFORMADO
     setor: str | None = Field(default=None, max_length=100)
     leito: str | None = Field(default=None, max_length=20)
-    status_internacao: StatusInternacaoEnum = StatusInternacaoEnum.AMBULATORIAL
     observacoes: str | None = Field(default=None, max_length=1000)
 
 
@@ -33,7 +32,6 @@ class PacienteUpdate(BaseModel):
     sexo: SexoEnum | None = None
     setor: str | None = Field(default=None, max_length=100)
     leito: str | None = Field(default=None, max_length=20)
-    status_internacao: StatusInternacaoEnum | None = None
     observacoes: str | None = Field(default=None, max_length=1000)
 
 

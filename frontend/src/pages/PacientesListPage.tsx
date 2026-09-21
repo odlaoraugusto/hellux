@@ -3,7 +3,6 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { CarregandoBarras } from "../components/CarregandoBarras";
-import StatusBadge from "../components/StatusBadge";
 import StatusExameBadge from "../components/StatusExameBadge";
 import { useDebounce } from "../hooks/useDebounce";
 import { listarPacientes, removerPaciente } from "../services/pacienteService";
@@ -130,7 +129,6 @@ export default function PacientesListPage() {
                   <th>Nome</th>
                   <th>Setor</th>
                   <th>Leito</th>
-                  <th>Status</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -157,9 +155,6 @@ export default function PacientesListPage() {
                         <td>{p.nome}</td>
                         <td>{p.setor ?? "—"}</td>
                         <td>{p.leito ?? "—"}</td>
-                        <td>
-                          <StatusBadge status={p.status_internacao} />
-                        </td>
                         <td style={{ display: "flex", gap: 8 }} onClick={(e) => e.stopPropagation()}>
                           <button
                             className="mg-btn mg-btn-outline"
@@ -178,7 +173,7 @@ export default function PacientesListPage() {
                       </tr>
                       {expandido && (
                         <tr key={`${p.id}-historico`}>
-                          <td colSpan={7} style={{ background: "var(--mg-cinza-100)", padding: 0 }}>
+                          <td colSpan={6} style={{ background: "var(--mg-cinza-100)", padding: 0 }}>
                             <div style={{ padding: "10px 12px 12px 40px" }}>
                               {historicoCarregandoId === p.id && <CarregandoBarras tamanho="pequeno" />}
                               {historicoErroId === p.id && (

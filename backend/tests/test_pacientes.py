@@ -12,7 +12,6 @@ def test_criar_paciente_com_sucesso(authenticated_client):
         "prontuario": "54321",
         "sexo": "MASCULINO",
         "setor": "UTI",
-        "status_internacao": "INTERNADO",
     }
     response = authenticated_client.post("/api/pacientes", json=payload)
 
@@ -73,11 +72,11 @@ def test_atualizar_paciente(authenticated_client):
 
     response = authenticated_client.put(
         f"/api/pacientes/{criado['id']}",
-        json={"status_internacao": "ALTA"},
+        json={"leito": "302-B"},
     )
 
     assert response.status_code == 200
-    assert response.json()["data"]["status_internacao"] == "ALTA"
+    assert response.json()["data"]["leito"] == "302-B"
 
 
 def test_remover_paciente_soft_delete(authenticated_client):
