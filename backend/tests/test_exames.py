@@ -193,6 +193,26 @@ def test_listar_exames_filtra_por_multiplos_status(authenticated_client):
     assert status_retornados == {"NEGATIVO", "POSITIVO"}
 
 
+def test_listar_exames_filtra_por_paciente_id(authenticated_client):
+    paciente_1 = criar_paciente(authenticated_client, prontuario="pac-1", nome="Paciente Um")
+    paciente_2 = criar_paciente(authenticated_client, prontuario="pac-2", nome="Paciente Dois")
+
+    criar_exame(authenticated_client, prontuario="pac-1", nome="Paciente Um")
+    criar_exame(authenticated_client, prontuario="pac-1", nome="Paciente Um")
+    criar_exame(authenticated_client, prontuario="pac-2", nome="Paciente Dois")
+
+    response = authenticated_client.get(
+        "/api/exames", params={"paciente_id": paciente_1["id"]}
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+    assert all(item["paciente"]["id"] == paciente_1["id"] for item in body["items"])
+    assert all(item["paciente"]["id"] != paciente_2["id"] for item in body["items"])
+
+
 def test_obter_exame_especifico(authenticated_client):
     criado = criar_exame(authenticated_client).json()["data"]
 

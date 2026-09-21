@@ -44,6 +44,7 @@ class ExameRepository(BaseRepository[Exame]):
     def search(
         self,
         status: list[StatusExameEnum] | StatusExameEnum | None = None,
+        paciente_id: uuid.UUID | None = None,
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[Exame], int]:
@@ -54,6 +55,9 @@ class ExameRepository(BaseRepository[Exame]):
                 stmt = stmt.where(Exame.status.in_(status))
             else:
                 stmt = stmt.where(Exame.status == status)
+
+        if paciente_id:
+            stmt = stmt.where(Exame.paciente_id == paciente_id)
 
         total = len(self.db.scalars(stmt).unique().all())
         items = (

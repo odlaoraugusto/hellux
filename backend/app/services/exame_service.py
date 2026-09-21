@@ -34,11 +34,14 @@ class ExameService:
     def listar(
         self,
         status: list[StatusExameEnum] | None,
+        paciente_id: uuid.UUID | None = None,
         page: int = 1,
         page_size: int = 20,
     ):
         skip = (page - 1) * page_size
-        return self.repository.search(status=status, skip=skip, limit=page_size)
+        return self.repository.search(
+            status=status, paciente_id=paciente_id, skip=skip, limit=page_size
+        )
 
     def obter(self, exame_id: uuid.UUID) -> Exame:
         exame = self.repository.get_by_id(exame_id)

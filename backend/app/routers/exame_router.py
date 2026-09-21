@@ -25,12 +25,13 @@ router = APIRouter(prefix="/api/exames", tags=["Exames"], dependencies=[Depends(
 @router.get("")
 def listar_exames(
     status: list[StatusExameEnum] | None = Query(default=None),
+    paciente_id: uuid.UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     service = ExameService(db)
-    items, total = service.listar(status, page=page, page_size=page_size)
+    items, total = service.listar(status, paciente_id=paciente_id, page=page, page_size=page_size)
     data = {
         "total": total,
         "page": page,
