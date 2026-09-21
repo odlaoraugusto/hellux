@@ -3,6 +3,7 @@ import { ExameCreate, ExameListagem, ExameOut, ExameUpdate, StatusExame } from "
 
 export async function listarExames(
   status?: StatusExame[],
+  pacienteId?: string,
   page = 1,
   pageSize = 20
 ): Promise<ExameListagem> {
@@ -12,6 +13,7 @@ export async function listarExames(
   // reconhece como o mesmo query param repetido.
   const params = new URLSearchParams();
   (status ?? []).forEach((s) => params.append("status", s));
+  if (pacienteId) params.set("paciente_id", pacienteId);
   params.set("page", String(page));
   params.set("page_size", String(pageSize));
 
