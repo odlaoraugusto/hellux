@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { CarregandoBarras } from "../components/CarregandoBarras";
-import { atualizarExame, criarExame, obterExame } from "../services/exameService";
+import { atualizarExame, criarExame, importarLaudo, obterExame } from "../services/exameService";
 import { listarSetores } from "../services/setorService";
 import { listarTiposCultura } from "../services/tipoCulturaService";
 import { listarMateriais } from "../services/materialService";
@@ -58,16 +58,26 @@ const FORM_INICIAL: FormState = {
   observacoes: "",
 };
 
+// Linha de antibiograma em edição - igual a `ExameAntibiogramaIn`, com um
+// campo extra `_nomeLaudo` só pra exibição (preenchido na importação de
+// laudo quando o antimicrobiano citado não bateu com o catálogo). Nunca
+// vai pro payload enviado ao backend (ver `montarIsoladosPayload`).
+interface AntibiogramaEditavel extends ExameAntibiogramaIn {
+  _nomeLaudo?: string;
+}
+
 // Estrutura de edição local de um isolado - espelha `ExameIsoladoIn`, mas
 // com `motivo_dispensa_tsa` sempre string (nunca null) pra facilitar o
 // binding com o <input>, e é convertida pro formato do backend só na hora
-// de montar o payload (ver `montarIsoladosPayload`).
+// de montar o payload (ver `montarIsoladosPayload`). `_nomeLaudo` segue a
+// mesma lógica de `AntibiogramaEditavel` acima.
 interface IsoladoEditavel {
   microrganismo_id: string;
   mecanismo_resistencia: MecanismoResistencia;
   nao_realizado_tecnico: boolean;
   motivo_dispensa_tsa: string;
-  antibiograma: ExameAntibiogramaIn[];
+  antibiograma: AntibiogramaEditavel[];
+  _nomeLaudo?: string;
 }
 
 function criarIsoladoVazio(): IsoladoEditavel {
@@ -107,6 +117,15 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [pacienteEncontrado, setPacienteEncontrado] = useState<boolean | null>(null);
   const prontuarioDebounced = useDebounce(form.paciente_prontuario, 350);
+
+  // Importação de laudo: só faz sentido num exame já criado (precisa do
+  // `id`) - preenche `isolados` local a partir do preview do backend, sem
+  // salvar nada automaticamente (quem grava é o submit normal do form).
+  const [mostrarImportarLaudo, setMostrarImportarLaudo] = useState(false);
+  const [textoLaudo, setTextoLaudo] = useState("");
+  const [processandoLaudo, setProcessandoLaudo] = useState(false);
+  const [erroLaudo, setErroLaudo] = useState<string | null>(null);
+  const [avisoPacienteDivergente, setAvisoPacienteDivergente] = useState<string | null>(null);
 
   // Carrega os catálogos (setor, tipo de cultura, material, microrganismo,
   // antimicrobiano) uma vez, na montagem do form.
@@ -283,8 +302,59 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
       mecanismo_resistencia: isolado.mecanismo_resistencia,
       nao_realizado_tecnico: isolado.nao_realizado_tecnico,
       motivo_dispensa_tsa: isolado.nao_realizado_tecnico ? isolado.motivo_dispensa_tsa : null,
-      antibiograma: isolado.nao_realizado_tecnico ? [] : isolado.antibiograma,
+      antibiograma: isolado.nao_realizado_tecnico
+        ? []
+        : isolado.antibiograma.map((a) => ({
+            antimicrobiano_id: a.antimicrobiano_id,
+            resultado: a.resultado,
+          })),
     }));
+  }
+
+  // Aplica o preview extraído de um laudo colado pelo usuário: os isolados
+  // atuais são substituídos (não é merge - é sempre "recomeçar do
+  // resultado novo"), e nada é salvo até o usuário clicar em Salvar. Se o
+  // status atual não permitir isolados, avança pra POSITIVO_PARCIAL antes,
+  // senão a seção fica escondida e os dados importados se perdem no submit.
+  async function handleImportarLaudo() {
+    if (!id) return;
+    setProcessandoLaudo(true);
+    setErroLaudo(null);
+    setAvisoPacienteDivergente(null);
+    try {
+      const resultado = await importarLaudo(id, textoLaudo);
+      if (!resultado.paciente_confere) {
+        setAvisoPacienteDivergente(
+          `Atenção: o laudo menciona prontuário/nome diferente do paciente deste exame` +
+            (resultado.prontuario_laudo ? ` (prontuário do laudo: ${resultado.prontuario_laudo})` : "") +
+            (resultado.nome_paciente_laudo ? ` (nome do laudo: ${resultado.nome_paciente_laudo})` : "") +
+            `. Confira se este é mesmo o exame certo antes de salvar.`
+        );
+      }
+      if (!STATUS_PERMITE_ISOLADOS.includes(form.status)) {
+        handleStatusChange("POSITIVO_PARCIAL");
+      }
+      setIsolados(
+        resultado.isolados.map((item) => ({
+          microrganismo_id: item.microrganismo_id ?? "",
+          mecanismo_resistencia: item.mecanismo_resistencia,
+          nao_realizado_tecnico: false,
+          motivo_dispensa_tsa: "",
+          _nomeLaudo: item.microrganismo_id ? undefined : item.microrganismo_nome_laudo,
+          antibiograma: item.antibiograma.map((a) => ({
+            antimicrobiano_id: a.antimicrobiano_id ?? "",
+            resultado: a.resultado,
+            _nomeLaudo: a.antimicrobiano_id ? undefined : a.antimicrobiano_nome_laudo,
+          })),
+        }))
+      );
+      setMostrarImportarLaudo(false);
+      setTextoLaudo("");
+    } catch (err: unknown) {
+      setErroLaudo(extrairMensagemErro(err, "Não foi possível processar o laudo."));
+    } finally {
+      setProcessandoLaudo(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -364,12 +434,88 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
         <CarregandoBarras />
       ) : (
         <form onSubmit={handleSubmit}>
-          <h3 style={{ margin: "0 0 16px 0" }}>{editando ? "Editar Exame" : "Novo Exame"}</h3>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <h3 style={{ margin: 0 }}>{editando ? "Editar Exame" : "Novo Exame"}</h3>
+            {editando && (
+              <button
+                type="button"
+                className="mg-btn mg-btn-outline"
+                onClick={() => setMostrarImportarLaudo((prev) => !prev)}
+              >
+                Importar Laudo
+              </button>
+            )}
+          </div>
 
           {erro && (
             <p style={{ color: "var(--mg-erro)", fontSize: 14, marginTop: 0, marginBottom: 16 }}>
               {erro}
             </p>
+          )}
+
+          {avisoPacienteDivergente && (
+            <div
+              style={{
+                background: "rgba(245,158,11,0.1)",
+                border: "1px solid var(--mg-alerta)",
+                borderRadius: "var(--mg-radius-sm)",
+                padding: "10px 14px",
+                fontSize: 13,
+                color: "var(--mg-alerta)",
+                marginBottom: 16,
+              }}
+            >
+              {avisoPacienteDivergente}
+            </div>
+          )}
+
+          {mostrarImportarLaudo && (
+            <div
+              className="mg-card"
+              style={{ border: "1px solid var(--mg-cinza-200)", marginBottom: 16 }}
+            >
+              <h4 style={{ margin: "0 0 10px 0", fontWeight: 500, color: "var(--mg-cinza-600)" }}>
+                Importar Laudo
+              </h4>
+              <p style={{ fontSize: 13, color: "var(--mg-cinza-600)", marginTop: 0 }}>
+                Cole abaixo o texto do laudo de microbiologia. Os isolados extraídos vão substituir
+                os isolados atuais deste formulário - nada é salvo até você clicar em Salvar.
+              </p>
+              <textarea
+                rows={10}
+                style={{ width: "100%", fontFamily: "monospace", fontSize: 13 }}
+                value={textoLaudo}
+                onChange={(e) => setTextoLaudo(e.target.value)}
+                placeholder="Cole aqui o texto do laudo..."
+              />
+              {erroLaudo && (
+                <p style={{ color: "var(--mg-erro)", fontSize: 13, marginTop: 8 }}>{erroLaudo}</p>
+              )}
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="mg-btn mg-btn-primary"
+                  disabled={processandoLaudo || !textoLaudo.trim()}
+                  onClick={handleImportarLaudo}
+                >
+                  {processandoLaudo ? "Processando..." : "Processar"}
+                </button>
+                <button
+                  type="button"
+                  className="mg-btn mg-btn-outline"
+                  onClick={() => setMostrarImportarLaudo(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           )}
 
           <h4 style={{ margin: "0 0 12px 0", fontWeight: 500, color: "var(--mg-cinza-600)" }}>
@@ -582,6 +728,11 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
                               </option>
                             ))}
                           </select>
+                          {!isolado.microrganismo_id && isolado._nomeLaudo && (
+                            <span style={{ fontSize: 11, color: "var(--mg-alerta)", marginLeft: 6 }}>
+                              (do laudo: "{isolado._nomeLaudo}")
+                            </span>
+                          )}
                         </div>
 
                         <div className="mg-field">
@@ -655,12 +806,18 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
                                   })
                                 }
                               >
+                                {!linha.antimicrobiano_id && <option value="">Selecione...</option>}
                                 {antimicrobianos.map((a) => (
                                   <option key={a.id} value={a.id}>
                                     {a.nome}
                                   </option>
                                 ))}
                               </select>
+                              {!linha.antimicrobiano_id && linha._nomeLaudo && (
+                                <span style={{ fontSize: 11, color: "var(--mg-alerta)" }}>
+                                  (do laudo: "{linha._nomeLaudo}")
+                                </span>
+                              )}
                               <select
                                 style={{ flex: 1 }}
                                 value={linha.resultado}

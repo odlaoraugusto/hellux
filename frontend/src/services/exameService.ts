@@ -1,5 +1,12 @@
 import { api, ApiResponse } from "./api";
-import { ExameCreate, ExameListagem, ExameOut, ExameUpdate, StatusExame } from "../types/exame";
+import {
+  ExameCreate,
+  ExameListagem,
+  ExameOut,
+  ExameUpdate,
+  LaudoImportado,
+  StatusExame,
+} from "../types/exame";
 
 export async function listarExames(
   status?: StatusExame[],
@@ -38,4 +45,12 @@ export async function atualizarExame(id: string, dados: ExameUpdate): Promise<Ex
 
 export async function removerExame(id: string): Promise<void> {
   await api.delete(`/api/exames/${id}`);
+}
+
+export async function importarLaudo(exameId: string, texto: string): Promise<LaudoImportado> {
+  const response = await api.post<ApiResponse<LaudoImportado>>(
+    `/api/exames/${exameId}/importar-laudo`,
+    { texto }
+  );
+  return response.data.data;
 }

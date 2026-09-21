@@ -182,3 +182,29 @@ export interface ExameListagem {
   page_size: number;
   items: ExameOut[];
 }
+
+/**
+ * Preview extraído automaticamente de um laudo colado pelo usuário
+ * (`POST /api/exames/{id}/importar-laudo`). `*_id` vem `null` quando o
+ * nome citado no laudo não bateu exatamente com o catálogo do tenant -
+ * nesse caso o usuário precisa escolher manualmente no formulário.
+ */
+export interface LaudoImportadoAntibiograma {
+  antimicrobiano_id: string | null;
+  antimicrobiano_nome_laudo: string;
+  resultado: ResultadoSIR;
+}
+
+export interface LaudoImportadoIsolado {
+  microrganismo_id: string | null;
+  microrganismo_nome_laudo: string;
+  mecanismo_resistencia: MecanismoResistencia;
+  antibiograma: LaudoImportadoAntibiograma[];
+}
+
+export interface LaudoImportado {
+  paciente_confere: boolean;
+  prontuario_laudo: string | null;
+  nome_paciente_laudo: string | null;
+  isolados: LaudoImportadoIsolado[];
+}
