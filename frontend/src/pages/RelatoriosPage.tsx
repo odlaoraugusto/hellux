@@ -62,8 +62,8 @@ function RelatorioCard({ titulo, descricao, botaoLabel, onBaixar }: RelatorioCar
   return (
     <div className="mg-card" style={{ flex: 1, minWidth: 280 }}>
       <h3 style={{ marginTop: 0 }}>{titulo}</h3>
-      <p style={{ color: "var(--mg-cinza-600)", fontSize: 14, minHeight: 40 }}>{descricao}</p>
-      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erro}</p>}
+      <p style={{ color: "var(--mg-cinza-600)", fontSize: 13, minHeight: 36 }}>{descricao}</p>
+      {erro && <p style={{ color: "var(--mg-erro)", fontSize: 12 }}>{erro}</p>}
       <button className="mg-btn mg-btn-primary" onClick={handleClick} disabled={baixando}>
         {baixando ? "Baixando..." : botaoLabel}
       </button>
@@ -119,7 +119,7 @@ export default function RelatoriosPage() {
 
   return (
     <MainLayout titulo="Relatórios" subtitulo="Exportação de dados e relatório da CCIH">
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
         <RelatorioCard
           titulo="Pacientes (Excel)"
           descricao="Exporta a lista completa de pacientes cadastrados, com setor, leito e status de internação."
@@ -151,7 +151,7 @@ export default function RelatoriosPage() {
 
       <div className="mg-card" style={{ maxWidth: 560 }}>
         <h3 style={{ marginTop: 0 }}>Relatório CCIH (PDF)</h3>
-        <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>
+        <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>
           Resumo geral, distribuição por setor, perfil microbiológico e mapa de resistência do
           período selecionado — calculado pela data da coleta. As culturas de vigilância ficam de
           fora deste relatório (têm o relatório dedicado abaixo).
@@ -179,18 +179,18 @@ export default function RelatoriosPage() {
           </div>
         </div>
 
-        {erroCcih && <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erroCcih}</p>}
+        {erroCcih && <p style={{ color: "var(--mg-erro)", fontSize: 12 }}>{erroCcih}</p>}
         <button
           className="mg-btn mg-btn-primary"
           onClick={handleBaixarCcih}
           disabled={baixandoCcih}
-          style={{ marginBottom: 10 }}
+          style={{ marginBottom: 8 }}
         >
           {baixandoCcih ? "Baixando..." : "Baixar relatório geral .pdf"}
         </button>
 
         {erroCcihVigilancia && (
-          <p style={{ color: "var(--mg-erro)", fontSize: 13 }}>{erroCcihVigilancia}</p>
+          <p style={{ color: "var(--mg-erro)", fontSize: 12 }}>{erroCcihVigilancia}</p>
         )}
         <button
           className="mg-btn mg-btn-outline"

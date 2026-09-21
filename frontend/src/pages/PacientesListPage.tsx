@@ -231,7 +231,7 @@ export default function PacientesListPage() {
                 })}
               </tbody>
             </table>
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--mg-cinza-600)" }}>
+            <p style={{ marginTop: 12, fontSize: 12, color: "var(--mg-cinza-600)" }}>
               {total} paciente{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}
             </p>
           </>

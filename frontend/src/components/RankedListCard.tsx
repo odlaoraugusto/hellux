@@ -34,7 +34,7 @@ export default function RankedListCard({ titulo, itens }: RankedListCardProps) {
       <h3 style={{ marginTop: 0 }}>{titulo}</h3>
 
       {itens.length === 0 ? (
-        <p style={{ color: "var(--mg-cinza-600)", fontSize: 14 }}>Nenhum dado este mês.</p>
+        <p style={{ color: "var(--mg-cinza-600)", fontSize: 13 }}>Nenhum dado este mês.</p>
       ) : (
         <>
           <ResponsiveContainer width="100%" height={visiveis.length * ALTURA_BARRA}>
@@ -51,7 +51,7 @@ export default function RankedListCard({ titulo, itens }: RankedListCardProps) {
                 width={120}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12, fill: "var(--mg-texto)" }}
+                tick={{ fontSize: 11, fill: "var(--mg-texto)" }}
                 tickFormatter={formatarNomeCatalogo}
               />
               <Tooltip
@@ -61,9 +61,9 @@ export default function RankedListCard({ titulo, itens }: RankedListCardProps) {
                   (item.payload as ItemRankeado).rotuloValor ?? value,
                   "Exames",
                 ]}
-                labelStyle={{ fontSize: 12, fontWeight: 600 }}
+                labelStyle={{ fontSize: 11, fontWeight: 600 }}
                 contentStyle={{
-                  fontSize: 13,
+                  fontSize: 12,
                   borderRadius: 8,
                   border: "1px solid var(--mg-cinza-200)",
                   boxShadow: "var(--mg-shadow-elevado)",
@@ -82,7 +82,7 @@ export default function RankedListCard({ titulo, itens }: RankedListCardProps) {
           </ResponsiveContainer>
 
           {restantes.length > 0 && (
-            <p style={{ margin: "8px 0 0 0", fontSize: 12, color: "var(--mg-cinza-600)" }}>
+            <p style={{ margin: "8px 0 0 0", fontSize: 11, color: "var(--mg-cinza-600)" }}>
               +{restantes.length} outros ({somaRestantes})
             </p>
           )}
