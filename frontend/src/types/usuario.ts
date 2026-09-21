@@ -1,4 +1,4 @@
-export type PerfilUsuario = "ADMIN" | "BIOMEDICO" | "TECNICO" | "VISUALIZADOR";
+export type PerfilUsuario = "ADMIN" | "BIOMEDICO" | "TECNICO" | "VISUALIZADOR" | "SUPER_ADMIN";
 
 export interface Usuario {
   id: string;
@@ -23,6 +23,12 @@ export interface UsuarioFormData {
   login: string;
   senha: string;
   perfil: PerfilUsuario;
+  /**
+   * Só é usado quando quem cadastra é um SUPER_ADMIN (que não tem tenant
+   * próprio) - para os demais perfis, o backend resolve o tenant sozinho
+   * a partir de quem está autenticado.
+   */
+  tenant_id?: string;
 }
 
 export interface UsuarioUpdateData {
