@@ -7,7 +7,7 @@ antibiograma de cada um (mesmo espírito do antigo `CulturaRepository`).
 """
 import uuid
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, extract, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.tenant_context import get_current_tenant_id
@@ -74,6 +74,23 @@ class ExameRepository(BaseRepository[Exame]):
             .where(Exame.is_active.is_(True), Exame.status.notin_(STATUS_FINAIS))
             .order_by(Exame.previsao_liberacao.asc().nulls_last(), Exame.created_at.asc())
         )
+        return list(self.db.scalars(stmt).unique().all())
+
+    def buscar_por_mes_ano_coleta(
+        self, mes: int | None = None, ano: int | None = None
+    ) -> list[Exame]:
+        """
+        Exames ativos coletados no mês/ano informados (cada filtro é
+        opcional e independente) - base do Painel de Acompanhamento. Sem
+        paginação: o painel filtra/ordena tudo no cliente, e o período já
+        limita o volume.
+        """
+        stmt = self._base_query().where(Exame.is_active.is_(True))
+        if mes is not None:
+            stmt = stmt.where(extract("month", Exame.data_coleta) == mes)
+        if ano is not None:
+            stmt = stmt.where(extract("year", Exame.data_coleta) == ano)
+        stmt = stmt.order_by(Exame.data_coleta.desc(), Exame.created_at.desc())
         return list(self.db.scalars(stmt).unique().all())
 
     def definir_isolados(self, exame_id: uuid.UUID, isolados: list) -> None:

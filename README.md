@@ -115,6 +115,7 @@ pytest
 | Configurações | ✅ Implementado (usuários, parâmetros, catálogos de microrganismos/antimicrobianos/setores/materiais, auditoria) | Sprint 11 |
 | Autenticação (JWT) | ✅ Implementado (login, bootstrap do 1º admin, RBAC por perfil) | Sprint 12 |
 | Auditoria | ✅ Implementado (middleware transversal + consulta de logs) | Sprint 13 |
+| Painel de Acompanhamento + novo layout visual | ✅ Implementado (culturas por mês/ano, linha colorida por status, filtros por coluna) | Sprint 15 |
 | Preparação para produção | ✅ Módulos clínicos travados com autenticação; Docker/infra prontos | Sprint 14 |
 
 ## Autenticação e segurança - estado atual

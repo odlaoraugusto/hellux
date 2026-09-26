@@ -18,7 +18,8 @@ export type StatusExame =
   | "POSITIVO_PARCIAL"
   | "NEGATIVO"
   | "POSITIVO"
-  | "CONTAMINACAO";
+  | "CONTAMINACAO"
+  | "AMOSTRA_INADEQUADA";
 
 export const STATUS_EXAME_OPCOES: StatusExame[] = [
   "AGUARDANDO_TRIAGEM",
@@ -27,6 +28,7 @@ export const STATUS_EXAME_OPCOES: StatusExame[] = [
   "NEGATIVO",
   "POSITIVO",
   "CONTAMINACAO",
+  "AMOSTRA_INADEQUADA",
 ];
 
 export const STATUS_EXAME_LABELS: Record<StatusExame, string> = {
@@ -36,6 +38,7 @@ export const STATUS_EXAME_LABELS: Record<StatusExame, string> = {
   NEGATIVO: "Negativo",
   POSITIVO: "Positivo",
   CONTAMINACAO: "Contaminação",
+  AMOSTRA_INADEQUADA: "Amostra inadequada",
 };
 
 export const STATUS_EXAME_BADGE_CLASSNAME: Record<StatusExame, string> = {
@@ -45,6 +48,7 @@ export const STATUS_EXAME_BADGE_CLASSNAME: Record<StatusExame, string> = {
   NEGATIVO: "mg-badge-sucesso",
   POSITIVO: "mg-badge-erro",
   CONTAMINACAO: "mg-badge-erro",
+  AMOSTRA_INADEQUADA: "mg-badge-neutro",
 };
 
 // Estados "em andamento" (ainda não finalizados) - espelha
@@ -60,8 +64,13 @@ export const STATUS_EM_ANDAMENTO: StatusExame[] = [
 export const STATUS_PERMITE_ISOLADOS: StatusExame[] = ["POSITIVO_PARCIAL", "POSITIVO"];
 
 // Status finais aceitos pela ação de "Liberar" na listagem - o único jeito
-// de finalizar um exame hoje é um PUT com um desses três valores.
-export const STATUS_LIBERACAO_OPCOES: StatusExame[] = ["NEGATIVO", "POSITIVO", "CONTAMINACAO"];
+// de finalizar um exame hoje é um PUT com um desses valores.
+export const STATUS_LIBERACAO_OPCOES: StatusExame[] = [
+  "NEGATIVO",
+  "POSITIVO",
+  "CONTAMINACAO",
+  "AMOSTRA_INADEQUADA",
+];
 
 export type MecanismoResistencia =
   | "NENHUM"
@@ -133,6 +142,7 @@ export interface ExameCreate {
   paciente_prontuario: string;
   paciente_nome: string;
   setor_id?: string | null;
+  numero_solicitacao?: string | null;
   tipo_cultura_id: string;
   material_id: string;
   data_coleta?: string | null;
@@ -145,6 +155,7 @@ export interface ExameCreate {
 
 export interface ExameUpdate {
   setor_id?: string | null;
+  numero_solicitacao?: string | null;
   tipo_cultura_id?: string | null;
   material_id?: string | null;
   data_coleta?: string | null;
@@ -165,6 +176,7 @@ export interface ExameOut {
   tipo_cultura: TipoCultura | null;
   material_id: string;
   material: Material | null;
+  numero_solicitacao: string | null;
   data_coleta: string;
   previsao_liberacao: string | null;
   status: StatusExame;
@@ -207,4 +219,68 @@ export interface LaudoImportado {
   prontuario_laudo: string | null;
   nome_paciente_laudo: string | null;
   isolados: LaudoImportadoIsolado[];
+}
+
+/**
+ * Status "simplificado" do Painel de Acompanhamento - espelha
+ * `STATUS_PAINEL` em app/services/exame_service.py (os dois estados
+ * parciais aparecem juntos como "Em andamento").
+ */
+export type StatusPainel =
+  | "AGUARDANDO_TRIAGEM"
+  | "EM_ANDAMENTO"
+  | "POSITIVA"
+  | "NEGATIVA"
+  | "CONTAMINACAO"
+  | "AMOSTRA_INADEQUADA";
+
+export const STATUS_PAINEL_OPCOES: StatusPainel[] = [
+  "AGUARDANDO_TRIAGEM",
+  "EM_ANDAMENTO",
+  "POSITIVA",
+  "NEGATIVA",
+  "CONTAMINACAO",
+  "AMOSTRA_INADEQUADA",
+];
+
+export const STATUS_PAINEL_LABELS: Record<StatusPainel, string> = {
+  AGUARDANDO_TRIAGEM: "Aguardando Triagem",
+  EM_ANDAMENTO: "Em Andamento",
+  POSITIVA: "Positiva",
+  NEGATIVA: "Negativa",
+  CONTAMINACAO: "Contaminação",
+  AMOSTRA_INADEQUADA: "Amostra Inadequada",
+};
+
+// Sufixo das variáveis `--mg-st-<sufixo>-solid` / `-on-solid` (tokens.css).
+export const STATUS_PAINEL_TOKEN: Record<StatusPainel, string> = {
+  AGUARDANDO_TRIAGEM: "triagem",
+  EM_ANDAMENTO: "andamento",
+  POSITIVA: "positiva",
+  NEGATIVA: "negativa",
+  CONTAMINACAO: "contam",
+  AMOSTRA_INADEQUADA: "inadeq",
+};
+
+export interface PainelLinha {
+  id: string;
+  prontuario: string | null;
+  paciente_nome: string | null;
+  numero_solicitacao: string | null;
+  data_coleta: string;
+  tipo_cultura: string | null;
+  material: string | null;
+  setor: string | null;
+  status: StatusExame;
+  status_painel: StatusPainel;
+  microrganismos: string[];
+  resistencia: string[];
+  sensibilidade: string[];
+  sensivel_exposicao_aumentada: string[];
+  mecanismos_resistencia: string[];
+}
+
+export interface PainelListagem {
+  total: number;
+  items: PainelLinha[];
 }

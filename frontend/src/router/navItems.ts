@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  ListChecks,
   Users,
   FlaskConical,
   ShieldCheck,
@@ -17,6 +18,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard, implementado: true },
+  { label: "Acompanhamento", path: "/acompanhamento", icon: ListChecks, implementado: true },
   { label: "Pacientes", path: "/pacientes", icon: Users, implementado: true },
   { label: "Exames", path: "/exames", icon: FlaskConical, implementado: true },
   { label: "CCIH", path: "/ccih", icon: ShieldCheck, implementado: true },

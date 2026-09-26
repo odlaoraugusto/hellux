@@ -5,6 +5,7 @@ import {
   ExameOut,
   ExameUpdate,
   LaudoImportado,
+  PainelListagem,
   StatusExame,
 } from "../types/exame";
 
@@ -52,5 +53,16 @@ export async function importarLaudo(exameId: string, texto: string): Promise<Lau
     `/api/exames/${exameId}/importar-laudo`,
     { texto }
   );
+  return response.data.data;
+}
+
+export async function obterPainelAcompanhamento(
+  mes?: number,
+  ano?: number
+): Promise<PainelListagem> {
+  const params: Record<string, number> = {};
+  if (mes) params.mes = mes;
+  if (ano) params.ano = ano;
+  const response = await api.get<ApiResponse<PainelListagem>>("/api/exames/painel", { params });
   return response.data.data;
 }

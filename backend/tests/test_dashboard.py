@@ -215,3 +215,57 @@ def test_tendencia_7_dias_conta_exames_de_hoje_e_vem_ordenada(authenticated_clie
 
     hoje = tendencia[-1]
     assert hoje["quantidade"] == 2
+
+
+def test_distribuicao_status_agrupa_como_no_painel(authenticated_client):
+    criar_exame(authenticated_client, prontuario="s1")  # AGUARDANDO_TRIAGEM
+    criar_exame(authenticated_client, prontuario="s2", status="NEGATIVO_PARCIAL")
+    criar_exame(authenticated_client, prontuario="s3", status="POSITIVO_PARCIAL")
+    criar_exame(authenticated_client, prontuario="s4", status="NEGATIVO")
+    criar_exame(authenticated_client, prontuario="s5", status="AMOSTRA_INADEQUADA")
+
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    distribuicao = {d["status"]: d["quantidade"] for d in body["distribuicao_status"]}
+
+    assert [d["status"] for d in body["distribuicao_status"]] == [
+        "AGUARDANDO_TRIAGEM",
+        "EM_ANDAMENTO",
+        "POSITIVA",
+        "NEGATIVA",
+        "CONTAMINACAO",
+        "AMOSTRA_INADEQUADA",
+    ]
+    assert distribuicao == {
+        "AGUARDANDO_TRIAGEM": 1,
+        "EM_ANDAMENTO": 2,
+        "POSITIVA": 0,
+        "NEGATIVA": 1,
+        "CONTAMINACAO": 0,
+        "AMOSTRA_INADEQUADA": 1,
+    }
+
+
+def test_coletas_30_dias_agrupa_pela_data_da_coleta(authenticated_client):
+    hoje_utc = datetime.now(timezone.utc).date()
+    ha_10_dias = hoje_utc - timedelta(days=10)
+    ha_40_dias = hoje_utc - timedelta(days=40)
+    criar_exame(authenticated_client, prontuario="c1", data_coleta=f"{ha_10_dias}T12:00:00Z")
+    criar_exame(authenticated_client, prontuario="c2", data_coleta=f"{ha_10_dias}T13:00:00Z")
+    criar_exame(authenticated_client, prontuario="c3", data_coleta=f"{ha_40_dias}T12:00:00Z")
+
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    coletas = {item["data"]: item["quantidade"] for item in body["coletas_30_dias"]}
+
+    assert len(body["coletas_30_dias"]) == 30
+    assert body["coletas_30_dias"][-1]["data"] == hoje_utc.isoformat()
+    assert coletas[ha_10_dias.isoformat()] == 2
+    assert sum(coletas.values()) == 2
+
+
+def test_total_exames_mes_anterior_sem_exames(authenticated_client):
+    # A fixture não permite escolher `created_at` - todo exame criado
+    # aqui cai no mês corrente, nunca no anterior.
+    criar_exame(authenticated_client, prontuario="m1")
+
+    body = authenticated_client.get("/api/dashboard/resumo").json()["data"]
+    assert body["total_exames_mes_anterior"] == 0

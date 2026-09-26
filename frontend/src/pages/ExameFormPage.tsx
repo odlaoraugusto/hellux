@@ -36,6 +36,7 @@ interface FormState {
   paciente_prontuario: string;
   paciente_nome: string;
   setor_id: string;
+  numero_solicitacao: string;
   tipo_cultura_id: string;
   material_id: string;
   data_coleta: string;
@@ -49,6 +50,7 @@ const FORM_INICIAL: FormState = {
   paciente_prontuario: "",
   paciente_nome: "",
   setor_id: "",
+  numero_solicitacao: "",
   tipo_cultura_id: "",
   material_id: "",
   data_coleta: "",
@@ -145,6 +147,7 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
           paciente_prontuario: exame.paciente?.prontuario ?? "",
           paciente_nome: exame.paciente?.nome ?? "",
           setor_id: exame.setor_id ?? "",
+          numero_solicitacao: exame.numero_solicitacao ?? "",
           tipo_cultura_id: exame.tipo_cultura_id,
           material_id: exame.material_id,
           data_coleta: exame.data_coleta ? exame.data_coleta.slice(0, 10) : "",
@@ -377,6 +380,7 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
       if (editando && id) {
         const payload: ExameUpdate = {
           setor_id: form.setor_id || null,
+          numero_solicitacao: form.numero_solicitacao.trim() || null,
           tipo_cultura_id: form.tipo_cultura_id || null,
           material_id: form.material_id || null,
           data_coleta: form.data_coleta || null,
@@ -393,6 +397,7 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
           paciente_prontuario: form.paciente_prontuario,
           paciente_nome: form.paciente_nome,
           setor_id: form.setor_id || null,
+          numero_solicitacao: form.numero_solicitacao.trim() || null,
           tipo_cultura_id: form.tipo_cultura_id,
           material_id: form.material_id,
           data_coleta: form.data_coleta || null,
@@ -565,6 +570,17 @@ export default function ExameFormPage({ exameId, onSalvo, onCancelar, onRemover 
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="mg-field">
+                <label>Nº da solicitação</label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={form.numero_solicitacao}
+                  onChange={(e) => handleChange("numero_solicitacao", e.target.value)}
+                  placeholder="Opcional"
+                />
               </div>
 
               <div className="mg-field">

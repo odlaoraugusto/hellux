@@ -62,6 +62,7 @@ class ExameCreate(BaseModel):
         "prontuário informado ainda não existe.",
     )
     setor_id: uuid.UUID | None = None
+    numero_solicitacao: str | None = Field(default=None, max_length=50)
     tipo_cultura_id: uuid.UUID
     material_id: uuid.UUID
     data_coleta: datetime | None = Field(
@@ -84,6 +85,7 @@ class ExameUpdate(BaseModel):
     """Todos os campos opcionais - permite atualização parcial (PATCH)."""
 
     setor_id: uuid.UUID | None = None
+    numero_solicitacao: str | None = Field(default=None, max_length=50)
     tipo_cultura_id: uuid.UUID | None = None
     material_id: uuid.UUID | None = None
     data_coleta: datetime | None = None
@@ -124,6 +126,7 @@ class ExameOut(BaseModel):
     tipo_cultura: TipoCulturaOut | None = None
     material_id: uuid.UUID
     material: MaterialOut | None = None
+    numero_solicitacao: str | None = None
     data_coleta: datetime
     previsao_liberacao: date | None
     status: StatusExameEnum
@@ -149,3 +152,23 @@ class ExameListOut(BaseModel):
 class ExameParcialListOut(BaseModel):
     total: int
     items: list[ExameParcialOut]
+
+
+class PainelLinhaOut(BaseModel):
+    """Linha do Painel de Acompanhamento (ver ExameService.painel_acompanhamento)."""
+
+    id: uuid.UUID
+    prontuario: str | None
+    paciente_nome: str | None
+    numero_solicitacao: str | None
+    data_coleta: datetime
+    tipo_cultura: str | None
+    material: str | None
+    setor: str | None
+    status: StatusExameEnum
+    status_painel: str
+    microrganismos: list[str]
+    resistencia: list[str]
+    sensibilidade: list[str]
+    sensivel_exposicao_aumentada: list[str]
+    mecanismos_resistencia: list[str]
