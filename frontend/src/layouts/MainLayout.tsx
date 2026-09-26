@@ -12,15 +12,23 @@ export default function MainLayout({ titulo, subtitulo, children }: MainLayoutPr
   const [sidebarAberta, setSidebarAberta] = useState(false);
 
   return (
-    <div className="mg-app-shell">
-      <Sidebar aberta={sidebarAberta} onFechar={() => setSidebarAberta(false)} />
-      {sidebarAberta && (
-        <div className="mg-sidebar-overlay" onClick={() => setSidebarAberta(false)} />
-      )}
-      <div className="mg-main">
-        <Topbar titulo={titulo} subtitulo={subtitulo} onAbrirMenu={() => setSidebarAberta(true)} />
-        <div className="mg-content">{children}</div>
+    <>
+      {/* Fundo decorativo do layout v2 (manchas desfocadas + grade de pontos). */}
+      <div className="mg-backdrop" aria-hidden="true">
+        <span />
+        <span />
+        <span />
       </div>
-    </div>
+      <div className="mg-app-shell">
+        <Sidebar aberta={sidebarAberta} onFechar={() => setSidebarAberta(false)} />
+        {sidebarAberta && (
+          <div className="mg-sidebar-overlay" onClick={() => setSidebarAberta(false)} />
+        )}
+        <div className="mg-main">
+          <Topbar titulo={titulo} subtitulo={subtitulo} onAbrirMenu={() => setSidebarAberta(true)} />
+          <div className="mg-content">{children}</div>
+        </div>
+      </div>
+    </>
   );
 }

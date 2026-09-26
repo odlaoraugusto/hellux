@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AlarmClock, CheckCircle2, Clock, FlaskConical, type LucideIcon } from "lucide-react";
 import MainLayout from "../layouts/MainLayout";
 import { CarregandoBarras } from "../components/CarregandoBarras";
 import StatCard from "../components/StatCard";
@@ -10,14 +11,29 @@ import { ResumoDashboard } from "../types/dashboard";
 interface KpiCardProps {
   titulo: string;
   valor: string | number;
-  cor?: string;
+  icone: LucideIcon;
+  /** Sufixo dos tokens de status (`--mg-st-<tom>` / `--mg-st-<tom>-bg`); sem ele usa a cor primária. */
+  tom?: string;
+  nota?: string;
 }
 
-function KpiCard({ titulo, valor, cor }: KpiCardProps) {
+function KpiCard({ titulo, valor, icone: Icone, tom, nota }: KpiCardProps) {
   return (
-    <div className="mg-card" style={{ flex: 1, minWidth: 160 }}>
-      <p style={{ margin: 0, fontSize: 12, color: "var(--mg-cinza-600)" }}>{titulo}</p>
-      <h2 style={{ margin: "6px 0 0 0", fontSize: 22, color: cor }}>{valor}</h2>
+    <div className="mg-tile">
+      <div className="mg-tile-top">
+        <span className="mg-tile-rotulo">{titulo}</span>
+        <span
+          className="mg-tile-icone"
+          style={{
+            background: tom ? `var(--mg-st-${tom}-bg)` : "var(--mg-primaria-tint)",
+            color: tom ? `var(--mg-st-${tom})` : "var(--mg-primaria)",
+          }}
+        >
+          <Icone size={17} strokeWidth={2} />
+        </span>
+      </div>
+      <div className="mg-tile-valor">{valor}</div>
+      {nota && <span className="mg-tile-nota">{nota}</span>}
     </div>
   );
 }
@@ -54,22 +70,26 @@ export default function DashboardPage() {
       {!erro && !carregando && resumo && (
         <>
           <h3>Hoje</h3>
-          <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
-            <KpiCard titulo="Culturas Hoje" valor={resumo.culturas_hoje} />
+          <div className="mg-tiles">
+            <KpiCard titulo="Culturas Hoje" valor={resumo.culturas_hoje} icone={FlaskConical} />
             <KpiCard
               titulo="Aguardando Atualização"
               valor={resumo.aguardando_atualizacao}
-              cor="var(--mg-neutro)"
+              icone={Clock}
+              tom="andamento"
+              nota="triagem ou resultado parcial"
             />
             <KpiCard
               titulo="Prazo Vencido"
               valor={resumo.prazo_vencido}
-              cor="var(--mg-erro)"
+              icone={AlarmClock}
+              tom="positiva"
             />
             <KpiCard
               titulo="Liberados Hoje"
               valor={resumo.liberados_hoje}
-              cor="var(--mg-sucesso)"
+              icone={CheckCircle2}
+              tom="negativa"
             />
           </div>
 

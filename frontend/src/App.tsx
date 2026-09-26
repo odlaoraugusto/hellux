@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import PacientesListPage from "./pages/PacientesListPage";
 import PacienteFormPage from "./pages/PacienteFormPage";
 import ExamesListPage from "./pages/ExamesListPage";
+import PainelAcompanhamentoPage from "./pages/PainelAcompanhamentoPage";
 import CcihPage from "./pages/CcihPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
@@ -15,6 +16,11 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+
+      <Route
+        path="/acompanhamento"
+        element={<ProtectedRoute><PainelAcompanhamentoPage /></ProtectedRoute>}
+      />
 
       <Route path="/pacientes" element={<ProtectedRoute><PacientesListPage /></ProtectedRoute>} />
       <Route path="/pacientes/novo" element={<ProtectedRoute><PacienteFormPage /></ProtectedRoute>} />

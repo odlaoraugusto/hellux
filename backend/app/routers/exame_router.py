@@ -16,7 +16,7 @@ from app.core.deps import get_current_user
 from app.core.response import success_response
 from app.db.session import get_db
 from app.models.exame import StatusExameEnum
-from app.schemas.exame import ExameCreate, ExameOut, ExameUpdate
+from app.schemas.exame import ExameCreate, ExameOut, ExameUpdate, PainelLinhaOut
 from app.schemas.laudo_import import LaudoImportarIn
 from app.services.exame_service import ExameService
 from app.services.laudo_import_service import LaudoImportService
@@ -41,6 +41,21 @@ def listar_exames(
         "items": [ExameOut.model_validate(item).model_dump(mode="json") for item in items],
     }
     return success_response(data, message="Exames listados com sucesso.")
+
+
+@router.get("/painel")
+def painel_acompanhamento(
+    mes: int | None = Query(default=None, ge=1, le=12),
+    ano: int | None = Query(default=None, ge=2000, le=2100),
+    db: Session = Depends(get_db),
+):
+    service = ExameService(db)
+    linhas = service.painel_acompanhamento(mes, ano)
+    data = {
+        "total": len(linhas),
+        "items": [PainelLinhaOut.model_validate(linha).model_dump(mode="json") for linha in linhas],
+    }
+    return success_response(data, message="Painel de acompanhamento carregado.")
 
 
 @router.get("/{exame_id}")

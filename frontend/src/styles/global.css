@@ -14,19 +14,7 @@ body,
 body {
   font-family: var(--mg-font-family);
   font-size: 14px;
-  background-color: var(--mg-fundo);
-  /*
-   * Mesma imagem de fundo do login (v1.2), só que aqui aparece bem sutil -
-   * um véu claro por cima (quase opaco) deixa só uma textura de fundo
-   * passando nas bordas/vazios ao redor dos cards, pra ter continuidade
-   * visual com o login sem comprometer a legibilidade de tabelas e
-   * formulários (os cards continuam brancos/opacos por cima, sem mudança).
-   */
-  background-image: linear-gradient(180deg, rgba(240, 247, 250, 0.95), rgba(240, 247, 250, 0.97)),
-    url("/login-bg.jpg");
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
+  background-color: var(--mg-fundo-app);
   color: var(--mg-texto);
   -webkit-font-smoothing: antialiased;
 }
@@ -35,6 +23,7 @@ h1,
 h2,
 h3,
 h4 {
+  font-family: var(--mg-font-titulo);
   font-weight: 600;
   margin: 0 0 8px 0;
 }
@@ -71,7 +60,61 @@ a {
   text-decoration: none;
 }
 
+/*
+ * Fundo decorativo do layout v2: manchas de cor desfocadas + grade de
+ * pontos, fixo atrás de tudo (mesmo em todas as páginas do shell).
+ */
+.mg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mg-backdrop span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+}
+
+.mg-backdrop span:nth-child(1) {
+  width: 520px;
+  height: 520px;
+  top: -160px;
+  left: -120px;
+  background: var(--mg-fundo-blob-1);
+}
+
+.mg-backdrop span:nth-child(2) {
+  width: 460px;
+  height: 460px;
+  bottom: -180px;
+  right: -100px;
+  background: var(--mg-fundo-blob-2);
+}
+
+.mg-backdrop span:nth-child(3) {
+  width: 320px;
+  height: 320px;
+  top: 38%;
+  right: 18%;
+  background: var(--mg-fundo-blob-1);
+  opacity: 0.6;
+}
+
+.mg-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--mg-texto-fraco) 1.4px, transparent 1.5px);
+  background-size: 26px 26px;
+  opacity: 0.18;
+}
+
 .mg-app-shell {
+  position: relative;
+  z-index: 1;
   display: flex;
   min-height: 100vh;
 }
@@ -84,7 +127,7 @@ a {
 }
 
 .mg-content {
-  padding: 20px 24px;
+  padding: 8px 32px 60px;
   flex: 1;
 }
 
@@ -95,13 +138,76 @@ a {
  * pelo botão de menu do Topbar) + um overlay que fecha ao clicar fora.
  */
 .mg-sidebar {
-  width: 240px;
+  width: 236px;
   background: var(--mg-sidebar-bg);
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  gap: 22px;
+  padding: 22px 16px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.mg-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+}
+
+.mg-sidebar-brand-nome {
+  font-family: var(--mg-font-titulo);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.2px;
+}
+
+.mg-sidebar-brand-tag {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 1px;
+}
+
+.mg-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mg-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border-radius: var(--mg-radius-md);
+  font-family: var(--mg-font-titulo);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.mg-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mg-nav-item.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.mg-sidebar-foot {
+  margin-top: auto;
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .mg-sidebar-overlay {
@@ -112,6 +218,7 @@ a {
   .mg-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
+    align-self: auto;
     height: 100vh;
     z-index: 40;
     transform: translateX(-100%);
@@ -137,9 +244,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 24px;
-  background: var(--mg-branco);
-  border-bottom: 1px solid var(--mg-cinza-200);
+  padding: 24px 32px 14px;
   gap: 12px;
 }
 
@@ -177,9 +282,10 @@ a {
 
 .mg-card {
   background: var(--mg-branco);
-  border-radius: var(--mg-radius-md);
-  border: var(--mg-border-sutil);
-  padding: 16px;
+  border-radius: var(--mg-radius-lg);
+  border: 1px solid var(--mg-borda);
+  box-shadow: var(--mg-shadow-card);
+  padding: 18px;
 }
 
 .mg-card-elevado {
@@ -255,6 +361,11 @@ a {
 .mg-badge-erro {
   background: rgba(220, 38, 38, 0.12);
   color: var(--mg-erro);
+}
+
+.mg-badge-neutro {
+  background: var(--mg-st-inadeq-bg);
+  color: var(--mg-st-inadeq);
 }
 
 .mg-badge-info {
@@ -570,4 +681,270 @@ table.mg-table td {
   padding: 16px 32px;
   background: var(--mg-branco);
   border-bottom: 1px solid var(--mg-cinza-200);
+}
+
+/*
+ * KPI tile do layout v2 (rótulo + ícone em quadrado tingido + número).
+ */
+.mg-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.mg-tile {
+  background: var(--mg-branco);
+  border: 1px solid var(--mg-borda);
+  border-radius: var(--mg-radius-lg);
+  box-shadow: var(--mg-shadow-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mg-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mg-tile-rotulo {
+  font-family: var(--mg-font-titulo);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mg-texto-suave);
+}
+
+.mg-tile-icone {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mg-tile-valor {
+  font-family: var(--mg-font-titulo);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mg-tile-nota {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mg-texto-suave);
+}
+
+@media (max-width: 1100px) {
+  .mg-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * Painel de Acompanhamento das culturas: tabela larga com rolagem
+ * horizontal/vertical, cabeçalho + linha de filtros fixos no topo, e
+ * cada linha pintada na cor sólida do seu status.
+ */
+.mg-painel-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.mg-painel-periodo {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.mg-painel-periodo label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mg-texto-fraco);
+  margin-bottom: 3px;
+}
+
+.mg-painel-periodo select,
+.mg-painel-tabela thead tr.mg-painel-filtros input,
+.mg-painel-tabela thead tr.mg-painel-filtros select {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--mg-texto);
+  background: var(--mg-branco);
+  border: 1px solid var(--mg-borda);
+  border-radius: var(--mg-radius-sm);
+  padding: 7px 9px;
+  outline: none;
+}
+
+.mg-painel-periodo select:focus,
+.mg-painel-tabela thead tr.mg-painel-filtros input:focus,
+.mg-painel-tabela thead tr.mg-painel-filtros select:focus {
+  border-color: var(--mg-primaria);
+  box-shadow: 0 0 0 3px var(--mg-primaria-tint);
+}
+
+.mg-status-legenda {
+  display: flex;
+  gap: 8px 10px;
+  flex-wrap: wrap;
+}
+
+.mg-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mg-font-titulo);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+}
+
+.mg-status-chip b {
+  font-variant-numeric: tabular-nums;
+}
+
+.mg-status-chip[aria-pressed="false"] {
+  opacity: 0.4;
+}
+
+.mg-painel-wrap {
+  background: var(--mg-branco);
+  border: 1px solid var(--mg-borda);
+  border-radius: var(--mg-radius-lg);
+  box-shadow: var(--mg-shadow-card);
+  overflow: hidden;
+}
+
+.mg-painel-scroll {
+  overflow: auto;
+  max-height: 62vh;
+  padding: 0 12px 10px;
+}
+
+.mg-painel-tabela {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  width: 100%;
+  min-width: 1520px;
+  font-size: 11px;
+}
+
+.mg-painel-tabela thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--mg-superficie-2);
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mg-texto-suave);
+  border-bottom: 1px solid var(--mg-borda);
+  white-space: nowrap;
+}
+
+.mg-painel-tabela thead tr.mg-painel-filtros th {
+  top: 29px;
+  background: var(--mg-branco);
+  padding: 5px 8px;
+}
+
+.mg-painel-tabela thead tr.mg-painel-filtros input,
+.mg-painel-tabela thead tr.mg-painel-filtros select {
+  width: 100%;
+  min-width: 96px;
+  padding: 4px 6px;
+  font-size: 10.5px;
+}
+
+.mg-painel-tabela tbody tr {
+  background: var(--linha-bg, transparent);
+  cursor: pointer;
+}
+
+.mg-painel-tabela tbody td {
+  padding: 8px 10px;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-weight: 700;
+  color: var(--linha-texto, var(--mg-texto));
+}
+
+.mg-painel-tabela tbody td:first-child {
+  border-top-left-radius: 9px;
+  border-bottom-left-radius: 9px;
+}
+
+.mg-painel-tabela tbody td:last-child {
+  border-top-right-radius: 9px;
+  border-bottom-right-radius: 9px;
+}
+
+.mg-painel-tabela tbody tr:hover td {
+  filter: brightness(1.06);
+}
+
+.mg-painel-tabela tbody tr:focus-visible {
+  outline: 2px solid var(--mg-primaria);
+  outline-offset: 1px;
+}
+
+.mg-painel-tabela td.mg-painel-vazio {
+  text-align: center;
+  padding: 26px;
+  color: var(--mg-texto-suave);
+  font-weight: 500;
+  cursor: default;
+}
+
+.mg-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.26);
+  color: inherit;
+}
+
+.mg-celula-vazia {
+  opacity: 0.6;
+}
+
+.mg-painel-rodape {
+  font-size: 11.5px;
+  color: var(--mg-texto-suave);
+  padding: 10px 4px 0;
+}
+
+.mg-link-btn {
+  font-size: 11px;
+  color: var(--mg-primaria);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
 }

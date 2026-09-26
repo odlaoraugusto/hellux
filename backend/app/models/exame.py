@@ -48,6 +48,7 @@ class StatusExameEnum(str, enum.Enum):
     NEGATIVO = "NEGATIVO"
     POSITIVO = "POSITIVO"
     CONTAMINACAO = "CONTAMINACAO"
+    AMOSTRA_INADEQUADA = "AMOSTRA_INADEQUADA"
 
 
 # Estados "em andamento" (ainda não finalizados) x "finais" - usados pelo
@@ -61,6 +62,7 @@ STATUS_FINAIS = (
     StatusExameEnum.NEGATIVO,
     StatusExameEnum.POSITIVO,
     StatusExameEnum.CONTAMINACAO,
+    StatusExameEnum.AMOSTRA_INADEQUADA,
 )
 STATUS_POSITIVO = (StatusExameEnum.POSITIVO_PARCIAL, StatusExameEnum.POSITIVO)
 
@@ -98,6 +100,7 @@ class Exame(TenantScopedMixin, UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMi
     material_id: Mapped[uuid.UUID] = mapped_column(
         GUID(), ForeignKey("materiais.id"), nullable=False, index=True
     )
+    numero_solicitacao: Mapped[str | None] = mapped_column(String(50), nullable=True)
     data_coleta: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     previsao_liberacao: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[StatusExameEnum] = mapped_column(

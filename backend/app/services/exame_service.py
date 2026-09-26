@@ -14,7 +14,13 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.tenant_context import get_current_tenant_id
-from app.models.exame import STATUS_POSITIVO, Exame, StatusExameEnum
+from app.models.exame import (
+    STATUS_POSITIVO,
+    Exame,
+    MecanismoResistenciaEnum,
+    ResultadoSIREnum,
+    StatusExameEnum,
+)
 from app.repositories.exame_repository import ExameRepository
 from app.repositories.parametro_sistema_repository import ParametroSistemaRepository
 from app.schemas.exame import ExameCreate, ExameUpdate
@@ -22,6 +28,32 @@ from app.schemas.paciente import PacienteCreate
 from app.services.paciente_service import PacienteService
 
 PRAZO_PADRAO_DIAS_FALLBACK = 2
+
+# Agrupamento "simplificado" do status para o Painel de Acompanhamento -
+# os dois estados parciais aparecem juntos como "Em andamento".
+STATUS_PAINEL = {
+    StatusExameEnum.AGUARDANDO_TRIAGEM: "AGUARDANDO_TRIAGEM",
+    StatusExameEnum.NEGATIVO_PARCIAL: "EM_ANDAMENTO",
+    StatusExameEnum.POSITIVO_PARCIAL: "EM_ANDAMENTO",
+    StatusExameEnum.POSITIVO: "POSITIVA",
+    StatusExameEnum.NEGATIVO: "NEGATIVA",
+    StatusExameEnum.CONTAMINACAO: "CONTAMINACAO",
+    StatusExameEnum.AMOSTRA_INADEQUADA: "AMOSTRA_INADEQUADA",
+}
+
+MECANISMO_LABELS = {
+    MecanismoResistenciaEnum.MRSA: "MRSA",
+    MecanismoResistenciaEnum.ESBL: "ESBL",
+    MecanismoResistenciaEnum.CARBAPENEMASE_KPC: "Carbapenemase (KPC)",
+    MecanismoResistenciaEnum.VRE: "VRE",
+    MecanismoResistenciaEnum.D_TESTE_POSITIVO: "D-teste positivo",
+    MecanismoResistenciaEnum.OUTRO: "Outro",
+}
+
+
+def _unicos(valores: list[str]) -> list[str]:
+    """Remove repetidos preservando a ordem de aparição."""
+    return list(dict.fromkeys(valores))
 
 
 class ExameService:
@@ -92,6 +124,7 @@ class ExameService:
                 "tenant_id": get_current_tenant_id(self.db),
                 "paciente_id": paciente.id,
                 "setor_id": dados.setor_id,
+                "numero_solicitacao": dados.numero_solicitacao,
                 "tipo_cultura_id": dados.tipo_cultura_id,
                 "material_id": dados.material_id,
                 "data_coleta": dados.data_coleta or datetime.now(timezone.utc),
@@ -149,3 +182,44 @@ class ExameService:
         """Exames ainda não finalizados, cada um com sua pendência explicada."""
         exames = self.repository.buscar_parciais()
         return [(exame, self.calcular_pendencia(exame)) for exame in exames]
+
+    def painel_acompanhamento(self, mes: int | None, ano: int | None) -> list[dict]:
+        """
+        Uma linha "achatada" por exame para o Painel de Acompanhamento:
+        microrganismos, antimicrobianos agrupados por resultado (R / S /
+        I = sensível com exposição aumentada, BrCAST) e mecanismos de
+        resistência de todos os isolados do exame.
+        """
+        linhas = []
+        for exame in self.repository.buscar_por_mes_ano_coleta(mes, ano):
+            por_resultado: dict[ResultadoSIREnum, list[str]] = {r: [] for r in ResultadoSIREnum}
+            microrganismos, mecanismos = [], []
+            for isolado in exame.isolados:
+                microrganismos.append(isolado.microrganismo.nome)
+                if isolado.mecanismo_resistencia in MECANISMO_LABELS:
+                    mecanismos.append(MECANISMO_LABELS[isolado.mecanismo_resistencia])
+                for item in isolado.antibiograma:
+                    por_resultado[item.resultado].append(item.antimicrobiano.nome)
+
+            linhas.append(
+                {
+                    "id": exame.id,
+                    "prontuario": exame.paciente.prontuario if exame.paciente else None,
+                    "paciente_nome": exame.paciente.nome if exame.paciente else None,
+                    "numero_solicitacao": exame.numero_solicitacao,
+                    "data_coleta": exame.data_coleta,
+                    "tipo_cultura": exame.tipo_cultura.nome if exame.tipo_cultura else None,
+                    "material": exame.material.nome if exame.material else None,
+                    "setor": exame.setor.nome if exame.setor else None,
+                    "status": exame.status,
+                    "status_painel": STATUS_PAINEL[exame.status],
+                    "microrganismos": _unicos(microrganismos),
+                    "resistencia": _unicos(por_resultado[ResultadoSIREnum.RESISTENTE]),
+                    "sensibilidade": _unicos(por_resultado[ResultadoSIREnum.SENSIVEL]),
+                    "sensivel_exposicao_aumentada": _unicos(
+                        por_resultado[ResultadoSIREnum.INTERMEDIARIO]
+                    ),
+                    "mecanismos_resistencia": _unicos(mecanismos),
+                }
+            )
+        return linhas

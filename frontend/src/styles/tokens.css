@@ -30,8 +30,23 @@
   --mg-cinza-400: #94a3b8;
   --mg-cinza-600: #475569;
 
-  /* Tipografia oficial: Poppins - moderna, limpa e altamente legível */
-  --mg-font-family: "Poppins", "Segoe UI", system-ui, sans-serif;
+  /* Tipografia: Poppins (marca) nos títulos/navegação, Inter no corpo -
+     mais legível em tabelas densas como a do Painel de Acompanhamento. */
+  --mg-font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mg-font-titulo: "Poppins", "Segoe UI", system-ui, sans-serif;
+
+  /* Layout v2 (Painel de Acompanhamento) - fundo com manchas de cor
+     desfocadas + superfícies */
+  --mg-fundo-app: #eef3f8;
+  --mg-fundo-blob-1: rgba(15, 76, 129, 0.14);
+  --mg-fundo-blob-2: rgba(46, 139, 87, 0.14);
+  --mg-superficie-2: #f1f5f9;
+  --mg-superficie-3: #e7edf5;
+  --mg-borda: #e2e8f0;
+  --mg-texto-suave: #5b6b7f;
+  --mg-texto-fraco: #94a3b8;
+  --mg-primaria-tint: #e7f0f8;
+  --mg-secundaria-tint: #e7f5ee;
 
   --mg-radius-sm: 4px;
   --mg-radius-md: 8px;
@@ -39,8 +54,36 @@
   --mg-radius-xl: 20px; /* novo — só usado no glass do login */
 
   --mg-border-sutil: 1px solid var(--mg-cinza-200);
-  --mg-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --mg-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 6px 16px rgba(15, 23, 42, 0.06);
   --mg-shadow-elevado: 0 8px 24px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.06);
+
+  /* Status do Painel de Acompanhamento: texto/fundo claro (chips,
+     KPIs) e versão sólida (linha inteira da tabela) com a cor de texto
+     que mantém contraste sobre ela. */
+  --mg-st-triagem: #1447c9;
+  --mg-st-triagem-bg: #eaf1fd;
+  --mg-st-triagem-solid: #4f7fe0;
+  --mg-st-triagem-on-solid: #16264d;
+  --mg-st-andamento: #9a5608;
+  --mg-st-andamento-bg: #fdf3dc;
+  --mg-st-andamento-solid: #e8a83e;
+  --mg-st-andamento-on-solid: #4a3106;
+  --mg-st-positiva: #ad1414;
+  --mg-st-positiva-bg: #fceeee;
+  --mg-st-positiva-solid: #e2574f;
+  --mg-st-positiva-on-solid: #4a1210;
+  --mg-st-negativa: #0e7038;
+  --mg-st-negativa-bg: #e8f7ee;
+  --mg-st-negativa-solid: #3fbd74;
+  --mg-st-negativa-on-solid: #0d3a20;
+  --mg-st-contam: #5b1fb0;
+  --mg-st-contam-bg: #f2ecfc;
+  --mg-st-contam-solid: #a565e0;
+  --mg-st-contam-on-solid: #35134a;
+  --mg-st-inadeq: #33414f;
+  --mg-st-inadeq-bg: #eef1f5;
+  --mg-st-inadeq-solid: #92a0b3;
+  --mg-st-inadeq-on-solid: #232c36;
 
   /* Sidebar usa a cor primária oficial da marca (Manual de Identidade Visual v1.0) */
   --mg-sidebar-bg: var(--mg-primaria);

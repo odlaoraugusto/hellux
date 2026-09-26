@@ -54,7 +54,7 @@ export default function Topbar({ titulo, subtitulo, onAbrirMenu }: TopbarProps) 
               padding: "8px 14px 8px 36px",
               borderRadius: "var(--mg-radius-sm)",
               border: "1px solid var(--mg-cinza-200)",
-              background: "var(--mg-cinza-100)",
+              background: "var(--mg-branco)",
               fontSize: 13,
               width: 220,
             }}
