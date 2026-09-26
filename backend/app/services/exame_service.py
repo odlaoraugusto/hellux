@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessRuleError, NotFoundError
 from app.core.tenant_context import get_current_tenant_id
 from app.models.exame import (
+    STATUS_PAINEL,
     STATUS_POSITIVO,
     Exame,
     MecanismoResistenciaEnum,
@@ -28,18 +29,6 @@ from app.schemas.paciente import PacienteCreate
 from app.services.paciente_service import PacienteService
 
 PRAZO_PADRAO_DIAS_FALLBACK = 2
-
-# Agrupamento "simplificado" do status para o Painel de Acompanhamento -
-# os dois estados parciais aparecem juntos como "Em andamento".
-STATUS_PAINEL = {
-    StatusExameEnum.AGUARDANDO_TRIAGEM: "AGUARDANDO_TRIAGEM",
-    StatusExameEnum.NEGATIVO_PARCIAL: "EM_ANDAMENTO",
-    StatusExameEnum.POSITIVO_PARCIAL: "EM_ANDAMENTO",
-    StatusExameEnum.POSITIVO: "POSITIVA",
-    StatusExameEnum.NEGATIVO: "NEGATIVA",
-    StatusExameEnum.CONTAMINACAO: "CONTAMINACAO",
-    StatusExameEnum.AMOSTRA_INADEQUADA: "AMOSTRA_INADEQUADA",
-}
 
 MECANISMO_LABELS = {
     MecanismoResistenciaEnum.MRSA: "MRSA",

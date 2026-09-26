@@ -23,6 +23,7 @@ from app.schemas.dashboard import (
     AlertaOut,
     ContagemCatalogoOut,
     ContagemDiariaOut,
+    ContagemStatusOut,
     ResumoDashboardOut,
     TopMicrorganismoOut,
 )
@@ -64,6 +65,15 @@ class DashboardService:
         tendencia_7_dias = [
             ContagemDiariaOut(data=dia, quantidade=quantidade)
             for dia, quantidade in self.repository.exames_por_dia(7)
+        ]
+
+        coletas_30_dias = [
+            ContagemDiariaOut(data=dia, quantidade=quantidade)
+            for dia, quantidade in self.repository.exames_por_dia(30, por_data_coleta=True)
+        ]
+        distribuicao_status = [
+            ContagemStatusOut(status=status, quantidade=quantidade)
+            for status, quantidade in self.repository.distribuicao_por_status()
         ]
 
         alertas: list[AlertaOut] = []
@@ -115,4 +125,7 @@ class DashboardService:
             por_material=por_material,
             por_setor=por_setor,
             tendencia_7_dias=tendencia_7_dias,
+            total_exames_mes_anterior=self.repository.contar_exames_mes_anterior(),
+            coletas_30_dias=coletas_30_dias,
+            distribuicao_status=distribuicao_status,
         )

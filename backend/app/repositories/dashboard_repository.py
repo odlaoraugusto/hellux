@@ -21,6 +21,8 @@ from sqlalchemy.orm import Session
 from app.models.exame import (
     STATUS_EM_ANDAMENTO,
     STATUS_FINAIS,
+    STATUS_PAINEL,
+    STATUS_PAINEL_ORDEM,
     STATUS_POSITIVO,
     Exame,
     ExameIsolado,
@@ -101,7 +103,7 @@ class DashboardRepository:
         )
         return self.db.scalar(stmt) or 0
 
-    def top_microrganismos(self, dias: int = 30, limite: int = 5) -> list[tuple[str, int]]:
+    def top_microrganismos(self, dias: int = 30, limite: int = 6) -> list[tuple[str, int]]:
         desde = datetime.now(timezone.utc) - timedelta(days=dias)
         stmt = (
             select(Microrganismo.nome, func.count(ExameIsolado.id).label("qtd"))
@@ -157,11 +159,42 @@ class DashboardRepository:
         )
         return list(self.db.execute(stmt).all())
 
-    def exames_por_dia(self, dias: int = 7) -> list[tuple[date, int]]:
+    def contar_exames_mes_anterior(self) -> int:
+        """Mês civil anterior inteiro - base da variação do card "Culturas no mês"."""
+        fim = self._inicio_mes_utc() - timedelta(days=1)
+        inicio = fim.replace(day=1)
+        stmt = select(func.count(Exame.id)).where(
+            Exame.is_active.is_(True),
+            func.date(Exame.created_at) >= inicio,
+            func.date(Exame.created_at) <= fim,
+        )
+        return self.db.scalar(stmt) or 0
+
+    def distribuicao_por_status(self) -> list[tuple[str, int]]:
+        """
+        Todos os exames ativos agrupados pelo status simplificado do
+        Painel de Acompanhamento (`STATUS_PAINEL`), sempre com os seis
+        grupos na ordem da legenda (zerados quando não há exame).
+        """
+        stmt = (
+            select(Exame.status, func.count(Exame.id))
+            .where(Exame.is_active.is_(True))
+            .group_by(Exame.status)
+        )
+        contagem = dict.fromkeys(STATUS_PAINEL_ORDEM, 0)
+        for status, quantidade in self.db.execute(stmt).all():
+            contagem[STATUS_PAINEL[StatusExameEnum(status)]] += quantidade
+        return list(contagem.items())
+
+    def exames_por_dia(
+        self, dias: int = 7, por_data_coleta: bool = False
+    ) -> list[tuple[date, int]]:
         """
         Contagem de exames criados por dia, nos últimos `dias` dias
         corridos (incluindo hoje) - usado no sparkline de tendência do
-        dashboard. Mesmo campo `Exame.created_at` de `contar_exames_criados_hoje`.
+        dashboard. Mesmo campo `Exame.created_at` de `contar_exames_criados_hoje`;
+        com `por_data_coleta=True` agrupa pela data da coleta (gráfico de
+        "culturas coletadas por dia").
 
         A agregação em si (`GROUP BY func.date(...)`) fica a cargo do
         banco, mas o preenchimento dos dias sem exame (`0`) é feito em
@@ -174,7 +207,7 @@ class DashboardRepository:
         """
         hoje = self._hoje_utc()
         inicio = hoje - timedelta(days=dias - 1)
-        dia_col = func.date(Exame.created_at)
+        dia_col = func.date(Exame.data_coleta if por_data_coleta else Exame.created_at)
         stmt = (
             select(dia_col, func.count(Exame.id))
             .where(

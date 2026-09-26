@@ -1,3 +1,5 @@
+import { StatusPainel } from "./exame";
+
 export interface TopMicrorganismo {
   nome: string;
   quantidade: number;
@@ -20,6 +22,11 @@ export interface ContagemDiaria {
   quantidade: number;
 }
 
+export interface ContagemStatus {
+  status: StatusPainel;
+  quantidade: number;
+}
+
 export interface ResumoDashboard {
   culturas_hoje: number;
   aguardando_atualizacao: number;
@@ -33,4 +40,9 @@ export interface ResumoDashboard {
   por_material: ContagemCatalogo[];
   por_setor: ContagemCatalogo[];
   tendencia_7_dias: ContagemDiaria[];
+  total_exames_mes_anterior: number;
+  /** Culturas por data de coleta, últimos 30 dias (inclui hoje, ordem crescente). */
+  coletas_30_dias: ContagemDiaria[];
+  /** Todos os exames ativos, agrupados como no Painel de Acompanhamento. */
+  distribuicao_status: ContagemStatus[];
 }

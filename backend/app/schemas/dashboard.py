@@ -34,6 +34,14 @@ class ContagemDiariaOut(BaseModel):
     quantidade: int
 
 
+class ContagemStatusOut(BaseModel):
+    """Quantidade de exames num status simplificado do Painel de
+    Acompanhamento (ver `STATUS_PAINEL` em app/models/exame.py)."""
+
+    status: str
+    quantidade: int
+
+
 class ResumoDashboardOut(BaseModel):
     culturas_hoje: int
     aguardando_atualizacao: int
@@ -47,3 +55,6 @@ class ResumoDashboardOut(BaseModel):
     por_material: list[ContagemCatalogoOut]
     por_setor: list[ContagemCatalogoOut]
     tendencia_7_dias: list[ContagemDiariaOut]
+    total_exames_mes_anterior: int
+    coletas_30_dias: list[ContagemDiariaOut]
+    distribuicao_status: list[ContagemStatusOut]

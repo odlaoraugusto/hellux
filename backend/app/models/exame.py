@@ -66,6 +66,20 @@ STATUS_FINAIS = (
 )
 STATUS_POSITIVO = (StatusExameEnum.POSITIVO_PARCIAL, StatusExameEnum.POSITIVO)
 
+# Agrupamento "simplificado" do status usado no Painel de Acompanhamento
+# e na distribuição por status do Dashboard - os dois estados parciais
+# aparecem juntos como "Em andamento".
+STATUS_PAINEL = {
+    StatusExameEnum.AGUARDANDO_TRIAGEM: "AGUARDANDO_TRIAGEM",
+    StatusExameEnum.NEGATIVO_PARCIAL: "EM_ANDAMENTO",
+    StatusExameEnum.POSITIVO_PARCIAL: "EM_ANDAMENTO",
+    StatusExameEnum.POSITIVO: "POSITIVA",
+    StatusExameEnum.NEGATIVO: "NEGATIVA",
+    StatusExameEnum.CONTAMINACAO: "CONTAMINACAO",
+    StatusExameEnum.AMOSTRA_INADEQUADA: "AMOSTRA_INADEQUADA",
+}
+STATUS_PAINEL_ORDEM = list(dict.fromkeys(STATUS_PAINEL.values()))
+
 
 class MecanismoResistenciaEnum(str, enum.Enum):
     NENHUM = "NENHUM"
